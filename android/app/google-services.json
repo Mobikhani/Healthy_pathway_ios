@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "601127473470",
+    "project_id": "healthy-pathway-c8ba1",
+    "storage_bucket": "healthy-pathway-c8ba1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:601127473470:android:427a9f55a81c79b6225c6f",
+        "android_client_info": {
+          "package_name": "com.example.healthy_pathway"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADBLX66q814cSJ-LkqKpoMOqRbDEN6yjo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
