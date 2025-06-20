@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 
 
 class NotificationService {
+
+  static Future<void> cancelAllNotifications() async {
+    await _notifications.cancelAll();
+  }
   static final _notifications = FlutterLocalNotificationsPlugin();
 
   static Future<void> init() async {

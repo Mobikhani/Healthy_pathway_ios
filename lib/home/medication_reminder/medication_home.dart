@@ -34,8 +34,11 @@ class _MedicationHomeState extends State<MedicationHome> {
       if (data != null && data is Map) {
         final List<Map<String, dynamic>> loaded = [];
         data.forEach((key, value) {
-          loaded.add(Map<String, dynamic>.from(value));
+          final medMap = Map<String, dynamic>.from(value);
+          medMap['key'] = key; // Store Firebase key
+          loaded.add(medMap);
         });
+
         setState(() {
           _medicines = loaded;
         });
@@ -46,6 +49,15 @@ class _MedicationHomeState extends State<MedicationHome> {
       }
     });
   }
+  void _deleteMedicine(String key) async {
+    if (_medRef != null) {
+      await _medRef!.child(key).remove();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Medicine deleted')),
+      );
+    }
+  }
+
 
   void _showAddMedicineSheet() {
     showModalBottomSheet(
@@ -129,7 +141,14 @@ class _MedicationHomeState extends State<MedicationHome> {
                       Text("Time: ${med['time'] ?? 'Not set'}"),
                     ],
                   ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      _deleteMedicine(med['key']);
+                    },
+                  ),
                 ),
+
               );
             },
           ),

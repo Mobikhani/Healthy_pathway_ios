@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'ask_ai.dart';
 import 'myth_details.dart';
 
 class MythHomeScreen extends StatelessWidget {
@@ -291,6 +292,13 @@ class MythHomeScreen extends StatelessWidget {
           },
         ],
       },
+      {
+        'icon': Icons.smart_toy,
+        'title': 'Ask AI About Myths',
+        'description': 'Have a myth not listed here? Ask the AI!',
+        'data': [], // no myths for now
+        'isAI': true, // custom flag to detect this section
+      },
     ];
 
     return Scaffold(
@@ -336,9 +344,11 @@ class MythHomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => MythDetailScreen(
-                      title: feature['title'],
-                      myths: List<Map<String, dynamic>>.from(feature['data'])
+                        builder: (_) => feature['isAI'] == true
+                            ? AskAIAboutMythsScreen()
+                            : MythDetailScreen(
+                          title: feature['title'],
+                          myths: List<Map<String, dynamic>>.from(feature['data']),
                         ),
                       ),
                     );

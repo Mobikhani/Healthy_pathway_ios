@@ -22,10 +22,12 @@ void main() async{
 }
 
 Future<void> requestNotificationPermission() async {
-  if (await Permission.notification.isDenied) {
+  final status = await Permission.notification.status;
+  if (!status.isGranted) {
     await Permission.notification.request();
   }
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

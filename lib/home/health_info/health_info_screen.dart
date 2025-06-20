@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:share_plus/share_plus.dart';
 
 class HealthInfoScreen extends StatefulWidget {
   const HealthInfoScreen({super.key});
@@ -89,6 +90,24 @@ class _HealthInfoScreenState extends State<HealthInfoScreen> {
       );
     }
   }
+  Future<void> shareHealthInfo() async {
+    final buffer = StringBuffer();
+    buffer.writeln("📋 *My Health Info Summary* 🩺");
+    buffer.writeln("─────────────────────────────");
+    healthData.forEach((key, value) {
+      final formattedKey = key
+          .replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (match) => '${match[1]} ${match[2]}')
+          .replaceAll('_', ' ')
+          .toUpperCase();
+      buffer.writeln("🔹 *$formattedKey*: $value");
+    });
+    buffer.writeln("─────────────────────────────");
+    buffer.writeln("Shared via Healthy Pathway App 💜");
+    print("Sharing: ${buffer.toString()}");
+    await Share.share(buffer.toString()); // use await
+  }
+
+
 
   Widget buildField(String label, String key) {
     return Card(
@@ -152,6 +171,11 @@ class _HealthInfoScreenState extends State<HealthInfoScreen> {
                 });
               },
             ),
+          IconButton(
+            icon: const Icon(Icons.share, color: Colors.white),
+            onPressed: shareHealthInfo,
+          ),
+
         ],
       ),
       body: _isLoading
