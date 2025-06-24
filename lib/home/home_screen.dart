@@ -10,6 +10,9 @@ import 'package:healthy_pathway/home/health_info/health_info_screen.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../auth/login_screen.dart';
+import 'health_tips/health_tips.dart';
+import 'dart:math';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,8 +25,43 @@ class _HomeScreenState extends State<HomeScreen> {
   String searchQuery = "";
   String userName = "Loading...";
   String userEmail = "";
+  String currentHealthTip = "";
+  Timer? _tipTimer;
 
   final User? currentUser = FirebaseAuth.instance.currentUser;
+
+  final List<String> healthTips = [
+    "Drink at least 8 glasses of water a day.",
+    "Get 7-8 hours of sleep each night.",
+    "Eat a balanced diet with fruits and vegetables.",
+    "Exercise for at least 30 minutes daily.",
+    "Avoid sugary drinks and junk food.",
+    "Wash your hands regularly.",
+    "Don't skip breakfast.",
+    "Practice deep breathing or meditation.",
+    "Avoid smoking and limit alcohol intake.",
+    "Take regular breaks from screens.",
+    "Stretch after waking up and before bed.",
+    "Go for a walk after meals.",
+    "Keep your posture straight.",
+    "Include nuts and seeds in your diet.",
+    "Use stairs instead of elevators.",
+    "Limit processed food consumption.",
+    "Take sunlight for Vitamin D.",
+    "Chew your food slowly.",
+    "Avoid late-night meals.",
+    "Stay connected with loved ones.",
+    "Use natural oils for cooking.",
+    "Do regular health checkups.",
+    "Stay mentally active (reading, puzzles).",
+    "Smile more, stress less.",
+    "Avoid eating when not hungry.",
+    "Reduce salt and sugar intake.",
+    "Keep your surroundings clean.",
+    "Don't ignore mental health.",
+    "Practice gratitude every day.",
+    "Avoid overeating even if the food is healthy."
+  ];
 
   final List<Map<String, dynamic>> allFeatures = [
     {
@@ -68,12 +106,30 @@ class _HomeScreenState extends State<HomeScreen> {
       'category': 'Health Education',
       'screen': const MythHomeScreen(),
     },
+    {
+      'icon': Icons.tips_and_updates,
+      'title': 'Daily Health Tips',
+      'description': 'Boost your day with a health tip',
+      'category': 'Health Education',
+      'screen': const HealthTipsScreen(),
+    },
   ];
 
   @override
   void initState() {
     super.initState();
     fetchUserDetails();
+    getRandomHealthTip();
+    // Start automatic tip cycling every 5 seconds
+    _tipTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      getRandomHealthTip();
+    });
+  }
+
+  @override
+  void dispose() {
+    _tipTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> fetchUserDetails() async {
@@ -91,6 +147,14 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+
+  void getRandomHealthTip() {
+    final random = Random();
+    final index = random.nextInt(healthTips.length);
+    setState(() {
+      currentHealthTip = healthTips[index];
+    });
   }
 
   void logout() async {
@@ -135,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 100, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 80, 16, 16),
           child: Column(
             children: [
               TextField(
@@ -155,10 +219,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
               Expanded(
                 child: ListView(
-                  children: buildFeatureSections(filteredFeatures),
+                  children: [
+                    buildHealthTipCard(currentHealthTip),
+                    ...buildFeatureSections(filteredFeatures),
+                  ],
                 ),
               ),
             ],
@@ -167,8 +234,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-
 
   Drawer buildDrawer(BuildContext context, String userName, String userEmail, List<Map<String, dynamic>> allFeatures, VoidCallback logout) {
     return Drawer(
@@ -250,7 +315,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 
   List<Widget> buildFeatureSections(List<Map<String, dynamic>> features) {
     final categories = <String>{};
@@ -334,8 +398,76 @@ class _HomeScreenState extends State<HomeScreen> {
         return Icons.restaurant;
       case 'Health Education':
         return Icons.menu_book;
+
       default:
         return Icons.star;
     }
+  }
+
+  Widget buildHealthTipCard(String tip) {
+    return Card(
+      color: Colors.white.withOpacity(0.95),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 8,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00ACC1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.lightbulb,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Daily Health Tip',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF004D61),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: getRandomHealthTip,
+                  icon: const Icon(Icons.refresh, color: Color(0xFF00ACC1)),
+                  tooltip: 'Get new tip',
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              tip,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black87,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Tips automatically change every 5 seconds!',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
