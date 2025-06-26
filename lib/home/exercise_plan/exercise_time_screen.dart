@@ -8,8 +8,12 @@ import 'package:http/http.dart' as http;
 
 class ExerciseTimerScreen extends StatefulWidget {
   final String exerciseName;
+  final String? exerciseDescription;
 
-  ExerciseTimerScreen({required this.exerciseName});
+  ExerciseTimerScreen({
+    required this.exerciseName,
+    this.exerciseDescription,
+  });
 
   @override
   _ExerciseTimerScreenState createState() => _ExerciseTimerScreenState();
@@ -203,6 +207,24 @@ class _ExerciseTimerScreenState extends State<ExerciseTimerScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _getExerciseIcon(widget.exerciseName),
+            SizedBox(height: 20),
+            if (widget.exerciseDescription != null)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Color(0xFF00ACC1).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Text(
+                  widget.exerciseDescription!,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF007C91),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             SizedBox(height: 20),
             Text(
               elapsed,

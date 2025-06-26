@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'add_medicine.dart';
+import '../../widgets/round_home_button.dart';
 
 class MedicationHome extends StatefulWidget {
   const MedicationHome({super.key});
@@ -86,73 +87,78 @@ class _MedicationHomeState extends State<MedicationHome> {
         elevation: 0,
         centerTitle: true,
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFB2EBF2), // Soft cyan
-              Color(0xFF00ACC1), // Calming teal
-              Color(0xFF007C91), // Deep teal
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: _medicines.isEmpty
-              ? const Center(
-            child: Text(
-              'No medicines added yet.',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFFB2EBF2), // Soft cyan
+                  Color(0xFF00ACC1), // Calming teal
+                  Color(0xFF007C91), // Deep teal
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
-          )
-              : ListView.builder(
-            itemCount: _medicines.length,
-            padding: const EdgeInsets.all(16),
-            itemBuilder: (context, index) {
-              final med = _medicines[index];
-              return Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+            child: SafeArea(
+              child: _medicines.isEmpty
+                  ? const Center(
+                child: Text(
+                  'No medicines added yet.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                elevation: 4,
-                margin: const EdgeInsets.symmetric(vertical: 10),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  leading: const Icon(Icons.medication, size: 40, color: Color(0xFF00ACC1)),
-                  title: Text(
-                    med['name'],
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF007C91),
+              )
+                  : ListView.builder(
+                itemCount: _medicines.length,
+                padding: const EdgeInsets.all(16),
+                itemBuilder: (context, index) {
+                  final med = _medicines[index];
+                  return Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 6),
-                      Text("Quantity: ${med['quantity']}"),
-                      Text("Days: ${med['days'].join(', ')}"),
-                      Text("Time: ${med['time'] ?? 'Not set'}"),
-                    ],
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      _deleteMedicine(med['key']);
-                    },
-                  ),
-                ),
+                    elevation: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 10),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(16),
+                      leading: const Icon(Icons.medication, size: 40, color: Color(0xFF00ACC1)),
+                      title: Text(
+                        med['name'],
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF007C91),
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 6),
+                          Text("Quantity: ${med['quantity']}"),
+                          Text("Days: ${med['days'].join(', ')}"),
+                          Text("Time: ${med['time'] ?? 'Not set'}"),
+                        ],
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () {
+                          _deleteMedicine(med['key']);
+                        },
+                      ),
+                    ),
 
-              );
-            },
+                  );
+                },
+              ),
+            ),
           ),
-        ),
+          const RoundHomeButton(),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddMedicineSheet,

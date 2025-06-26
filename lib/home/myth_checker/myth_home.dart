@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'ask_ai.dart';
 import 'myth_details.dart';
+import '../../widgets/round_home_button.dart';
 
 class MythHomeScreen extends StatelessWidget {
   const MythHomeScreen({super.key});
@@ -60,7 +61,7 @@ class MythHomeScreen extends StatelessWidget {
           },
           {
             'myth': 'You must eat breakfast to be healthy',
-            'truth': 'While beneficial for some, it’s not mandatory for everyone.',
+            'truth': 'While beneficial for some, it\'s not mandatory for everyone.',
             'status': 'Busted'
           },
           {
@@ -75,7 +76,7 @@ class MythHomeScreen extends StatelessWidget {
           },
           {
             'myth': 'Natural sugars like honey are better than white sugar',
-            'truth': 'They’re still sugars and should be consumed in moderation.',
+            'truth': 'They\'re still sugars and should be consumed in moderation.',
             'status': 'Busted'
           },
           {
@@ -117,7 +118,7 @@ class MythHomeScreen extends StatelessWidget {
           },
           {
             'myth': 'You can turn fat into muscle',
-            'truth': 'Fat and muscle are different tissues; they don’t convert.',
+            'truth': 'Fat and muscle are different tissues; they don\'t convert.',
             'status': 'Busted'
           },
           {
@@ -164,7 +165,7 @@ class MythHomeScreen extends StatelessWidget {
         'data': [
           {
             'myth': 'You can catch up on sleep during weekends',
-            'truth': 'Chronic sleep debt can’t be repaid in two nights.',
+            'truth': 'Chronic sleep debt can\'t be repaid in two nights.',
             'status': 'Busted'
           },
           {
@@ -195,7 +196,7 @@ class MythHomeScreen extends StatelessWidget {
           },
           {
             'myth': 'Napping during the day ruins nighttime sleep',
-            'truth': 'Short naps (<20 mins) don’t affect nighttime sleep.',
+            'truth': 'Short naps (<20 mins) don\'t affect nighttime sleep.',
             'status': 'Busted'
           },
           {
@@ -210,7 +211,7 @@ class MythHomeScreen extends StatelessWidget {
           },
           {
             'myth': 'Sleeping in on weekends fixes weekday sleep loss',
-            'truth': 'It disrupts circadian rhythm and isn’t a true fix.',
+            'truth': 'It disrupts circadian rhythm and isn\'t a true fix.',
             'status': 'Busted'
           },
           {
@@ -228,7 +229,7 @@ class MythHomeScreen extends StatelessWidget {
       {
         'icon': Icons.psychology,
         'title': 'Mental Health Myths',
-        'description': 'What’s true and what’s not',
+        'description': 'What\'s true and what\'s not',
         'data': [
           {
             'myth': 'Mental health problems are rare',
@@ -237,7 +238,7 @@ class MythHomeScreen extends StatelessWidget {
           },
           {
             'myth': 'People with mental illness are violent',
-            'truth': 'They’re more likely to be victims than perpetrators.',
+            'truth': 'They\'re more likely to be victims than perpetrators.',
             'status': 'Busted'
           },
           {
@@ -256,7 +257,7 @@ class MythHomeScreen extends StatelessWidget {
             'status': 'Busted'
           },
           {
-            'myth': 'Kids can’t have mental health issues',
+            'myth': 'Kids can\'t have mental health issues',
             'truth': 'Children can experience anxiety, depression, and more.',
             'status': 'Busted'
           },
@@ -267,7 +268,7 @@ class MythHomeScreen extends StatelessWidget {
           },
           {
             'myth': 'Mental illness is caused by personal weakness',
-            'truth': 'It’s influenced by biology, environment, and genetics.',
+            'truth': 'It\'s influenced by biology, environment, and genetics.',
             'status': 'Busted'
           },
           {
@@ -276,7 +277,7 @@ class MythHomeScreen extends StatelessWidget {
             'status': 'Busted'
           },
           {
-            'myth': 'People with mental illness can’t hold jobs',
+            'myth': 'People with mental illness can\'t hold jobs',
             'truth': 'Many thrive in workplaces with proper support.',
             'status': 'Busted'
           },
@@ -312,52 +313,57 @@ class MythHomeScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFB2EBF2), // Soft cyan
-              Color(0xFF00ACC1), // Calming teal
-              Color(0xFF007C91), // Deep blue-teal
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFFB2EBF2), // Soft cyan
+                  Color(0xFF00ACC1), // Calming teal
+                  Color(0xFF007C91), // Deep blue-teal
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.only(top: 100.0, left: 16, right: 16, bottom: 16),
-          child: ListView.separated(
-            itemCount: features.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 16),
-            itemBuilder: (context, index) {
-              final feature = features[index];
-              return Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                color: Colors.white.withOpacity(0.9),
-                child: ListTile(
-                  leading: Icon(feature['icon'], color: Colors.blueGrey),
-                  title: Text(feature['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(feature['description']),
-                  trailing: const Icon(Icons.arrow_forward_ios),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => feature['isAI'] == true
-                            ? AskAIAboutMythsScreen()
-                            : MythDetailScreen(
-                          title: feature['title'],
-                          myths: List<Map<String, dynamic>>.from(feature['data']),
+          Padding(
+            padding: const EdgeInsets.only(top: 100.0, left: 16, right: 16, bottom: 16),
+            child: ListView.separated(
+              itemCount: features.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 16),
+              itemBuilder: (context, index) {
+                final feature = features[index];
+                return Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  color: Colors.white.withOpacity(0.9),
+                  child: ListTile(
+                    leading: Icon(feature['icon'], color: Colors.blueGrey),
+                    title: Text(feature['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(feature['description']),
+                    trailing: const Icon(Icons.arrow_forward_ios),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => feature['isAI'] == true
+                              ? AskAIAboutMythsScreen()
+                              : MythDetailScreen(
+                                title: feature['title'],
+                                myths: List<Map<String, dynamic>>.from(feature['data']),
+                              ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
           ),
-        ),
+          const RoundHomeButton(),
+        ],
       ),
     );
   }

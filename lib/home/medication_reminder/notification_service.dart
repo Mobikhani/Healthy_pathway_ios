@@ -71,10 +71,8 @@ class NotificationService {
             presentSound: true,
           ),
         ),
-        androidAllowWhileIdle: true,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-        uiLocalNotificationDateInterpretation:
-        UILocalNotificationDateInterpretation.absoluteTime,
       );
       print('Scheduling for ${scheduledDate.toLocal()}');
     }

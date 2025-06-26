@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'exercise_time_screen.dart';
+import '../../widgets/round_home_button.dart';
 
 class ExercisePlanScreen extends StatefulWidget {
   @override
@@ -10,12 +11,12 @@ class ExercisePlanScreen extends StatefulWidget {
 
 class _ExercisePlanScreenState extends State<ExercisePlanScreen> {
   final List<Map<String, dynamic>> exercises = [
-    {'name': 'Running', 'icon': Icons.directions_run},
-    {'name': 'Stretching', 'icon': Icons.self_improvement},
-    {'name': 'Push-ups', 'icon': Icons.fitness_center},
-    {'name': 'Planking', 'icon': Icons.accessibility_new},
-    {'name': 'Jumping Jacks', 'icon': Icons.sports_kabaddi},
-    {'name': 'Squats', 'icon': Icons.accessibility},
+    {'name': 'Running', 'icon': Icons.directions_run, 'description': 'Cardio exercise for endurance'},
+    {'name': 'Stretching', 'icon': Icons.self_improvement, 'description': 'Flexibility and mobility training'},
+    {'name': 'Push-ups', 'icon': Icons.fitness_center, 'description': 'Upper body strength training'},
+    {'name': 'Planking', 'icon': Icons.accessibility_new, 'description': 'Core strength and stability'},
+    {'name': 'Jumping Jacks', 'icon': Icons.sports_kabaddi, 'description': 'Full body cardio exercise'},
+    {'name': 'Squats', 'icon': Icons.accessibility, 'description': 'Lower body strength training'},
   ];
 
   final user = FirebaseAuth.instance.currentUser;
@@ -74,7 +75,6 @@ class _ExercisePlanScreenState extends State<ExercisePlanScreen> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,15 +91,20 @@ class _ExercisePlanScreenState extends State<ExercisePlanScreen> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildTotalCalories(),
-            _buildExerciseGrid(),
-            _buildExerciseHistoryCards(),
-            SizedBox(height: 20),
-          ],
-        ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildTotalCalories(),
+                _buildExerciseGrid(),
+                _buildExerciseHistoryCards(),
+                SizedBox(height: 80), // Add space for the button
+              ],
+            ),
+          ),
+          const RoundHomeButton(),
+        ],
       ),
     );
   }
@@ -171,6 +176,7 @@ class _ExercisePlanScreenState extends State<ExercisePlanScreen> {
                 MaterialPageRoute(
                   builder: (_) => ExerciseTimerScreen(
                     exerciseName: ex['name'],
+                    exerciseDescription: ex['description'],
                   ),
                 ),
               );
@@ -198,11 +204,27 @@ class _ExercisePlanScreenState extends State<ExercisePlanScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(ex['icon'], color: Colors.white, size: 34),
+                  Icon(ex['icon'], color: Colors.white, size: 40),
                   SizedBox(height: 8),
                   Text(
                     ex['name'],
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white, 
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    ex['description'],
+                    style: TextStyle(
+                      color: Colors.white70, 
+                      fontSize: 12,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

@@ -27,8 +27,8 @@ dependencies:
   firebase_database: ^10.4.0
   firebase_auth: ^4.15.3
   intl: ^0.18.1
-  flutter_local_notifications: ^16.3.0
-  timezone: ^0.9.2
+  flutter_local_notifications: ^19.3.0
+  timezone: ^0.10.1
   permission_handler: ^11.1.0
   share_plus: ^7.2.1
 
@@ -53,10 +53,5 @@ flutter:
 
   assets:
     - assets/
-    - assets/images/
-    - assets/images/backgrounds/
-    - assets/images/icons/
-    - assets/images/health/
-    - assets/images/ui/
 
 

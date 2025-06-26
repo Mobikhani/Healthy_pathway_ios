@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../../widgets/round_home_button.dart';
 
 class CalorieTrackerScreen extends StatefulWidget {
   const CalorieTrackerScreen({super.key});
@@ -155,185 +156,189 @@ class _CalorieTrackerScreenState extends State<CalorieTrackerScreen> {
   Widget build(BuildContext context) {
     int remaining = _dailyTarget - _totalCalories;
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFFB2EBF2), // Soft cyan
-            Color(0xFF00ACC1), // Calming teal
-            Color(0xFF007C91), // Deep blue-teal
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Calories Tracker', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF00ACC1),
+        iconTheme: const IconThemeData(color: Colors.white),
+        centerTitle: true,
+        elevation: 6,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
       ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          iconTheme: IconThemeData(
-            color: Colors.white
-          ),
-          title: const Text("🍎 Calorie Tracker",style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),),
-          centerTitle: true,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-        ),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Input + Button
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: _inputController,
-                        decoration: const InputDecoration(
-                          labelText: 'Enter food or dish',
-                          prefixIcon: Icon(Icons.fastfood),
-                          border: OutlineInputBorder(),
-                        ),
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFFB2EBF2), // Soft cyan
+                  Color(0xFF00ACC1), // Calming teal
+                  Color(0xFF007C91), // Deep blue-teal
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Input + Button
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.85),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _isLoading
-                              ? null
-                              : () {
-                            final input = _inputController.text.trim();
-                            if (input.isNotEmpty) {
-                              _addCaloriesFromGemini(input);
-                              _inputController.clear();
-                            }
-                          },
-                          icon: const Icon(Icons.add),
-                          label: const Text("Estimate & Add"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF00ACC1),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _inputController,
+                            decoration: const InputDecoration(
+                              labelText: 'Enter food or dish',
+                              prefixIcon: Icon(Icons.fastfood),
+                              border: OutlineInputBorder(),
                             ),
                           ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _isLoading
+                                  ? null
+                                  : () {
+                                final input = _inputController.text.trim();
+                                if (input.isNotEmpty) {
+                                  _addCaloriesFromGemini(input);
+                                  _inputController.clear();
+                                }
+                              },
+                              icon: const Icon(Icons.add),
+                              label: const Text("Estimate & Add"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFF00ACC1),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Status
+                    if (_isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else
+                      Center(
+                        child: Text(
+                          _status,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: _status.startsWith('✅')
+                                ? Colors.green[900]
+                                : _status.startsWith('❌')
+                                ? Colors.red
+                                : Colors.black,
+                          ),
                         ),
+                      ),
+
+                    const SizedBox(height: 24),
+
+                    // Summary Card
+                    Card(
+                      color: Colors.white.withOpacity(0.9),
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "📊 Today's Summary",
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 16),
+                            ListTile(
+                              leading: const Icon(Icons.local_fire_department, color: Colors.orange),
+                              title: const Text("Total Calories"),
+                              trailing: Text(
+                                '$_totalCalories kcal',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.flag, color: Colors.blue),
+                              title: const Text("Daily Target"),
+                              trailing: Text(
+                                '$_dailyTarget kcal',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.av_timer, color: Colors.teal),
+                              title: const Text("Remaining"),
+                              trailing: Text(
+                                '${remaining > 0 ? remaining : 0} kcal',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: remaining < 0 ? Colors.red : Colors.green,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Added Items
+                    if (_entries.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      const Text(
+                        "🍽️ Added Items",
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      const SizedBox(height: 8),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _entries.length,
+                        itemBuilder: (context, index) {
+                          final entry = _entries[index];
+                          return Card(
+                            color: Colors.white.withOpacity(0.9),
+                            child: ListTile(
+                              title: Text(entry['item']),
+                              subtitle: Text('${entry['calories']} kcal'),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _deleteEntry(index),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ],
-                  ),
+                  ],
                 ),
-
-                const SizedBox(height: 24),
-
-                // Status
-                if (_isLoading)
-                  const Center(child: CircularProgressIndicator())
-                else
-                  Center(
-                    child: Text(
-                      _status,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: _status.startsWith('✅')
-                            ? Colors.green[900]
-                            : _status.startsWith('❌')
-                            ? Colors.red
-                            : Colors.black,
-                      ),
-                    ),
-                  ),
-
-                const SizedBox(height: 24),
-
-                // Summary Card
-                Card(
-                  color: Colors.white.withOpacity(0.9),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "📊 Today's Summary",
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 16),
-                        ListTile(
-                          leading: const Icon(Icons.local_fire_department, color: Colors.orange),
-                          title: const Text("Total Calories"),
-                          trailing: Text(
-                            '$_totalCalories kcal',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.flag, color: Colors.blue),
-                          title: const Text("Daily Target"),
-                          trailing: Text(
-                            '$_dailyTarget kcal',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.av_timer, color: Colors.teal),
-                          title: const Text("Remaining"),
-                          trailing: Text(
-                            '${remaining > 0 ? remaining : 0} kcal',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: remaining < 0 ? Colors.red : Colors.green,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Added Items
-                if (_entries.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  const Text(
-                    "🍽️ Added Items",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  const SizedBox(height: 8),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _entries.length,
-                    itemBuilder: (context, index) {
-                      final entry = _entries[index];
-                      return Card(
-                        color: Colors.white.withOpacity(0.9),
-                        child: ListTile(
-                          title: Text(entry['item']),
-                          subtitle: Text('${entry['calories']} kcal'),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteEntry(index),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
-        ),
+          const RoundHomeButton(),
+        ],
       ),
     );
   }
-
 }

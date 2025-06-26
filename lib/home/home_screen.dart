@@ -1,18 +1,18 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:healthy_pathway/home/exercise_plan/exercise_plan_screen.dart';
-import 'package:healthy_pathway/home/medication_reminder/medication_home.dart';
-import 'package:healthy_pathway/home/myth_checker/myth_home.dart';
-import 'package:healthy_pathway/home/nutration_guide/calories_tracker.dart';
-import 'package:healthy_pathway/home/overview_and_prevention/disease_overview_prevention.dart';
-import 'package:healthy_pathway/home/health_info/health_info_screen.dart';
-import 'dart:ui';
-import 'package:flutter/material.dart';
-import '../auth/login_screen.dart';
-import 'health_tips/health_tips.dart';
+import 'package:share_plus/share_plus.dart';
 import 'dart:math';
 import 'dart:async';
+import '../auth/login_screen.dart';
+import 'exercise_plan/exercise_plan_screen.dart';
+import 'medication_reminder/medication_home.dart';
+import 'health_info/health_info_screen.dart';
+import 'health_tips/health_tips.dart';
+import 'myth_checker/myth_home.dart';
+import 'nutration_guide/calories_tracker.dart';
+import 'overview_and_prevention/disease_overview_prevention.dart';
+import '../services/health_tips_api.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,39 +29,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _tipTimer;
 
   final User? currentUser = FirebaseAuth.instance.currentUser;
-
-  final List<String> healthTips = [
-    "Drink at least 8 glasses of water a day.",
-    "Get 7-8 hours of sleep each night.",
-    "Eat a balanced diet with fruits and vegetables.",
-    "Exercise for at least 30 minutes daily.",
-    "Avoid sugary drinks and junk food.",
-    "Wash your hands regularly.",
-    "Don't skip breakfast.",
-    "Practice deep breathing or meditation.",
-    "Avoid smoking and limit alcohol intake.",
-    "Take regular breaks from screens.",
-    "Stretch after waking up and before bed.",
-    "Go for a walk after meals.",
-    "Keep your posture straight.",
-    "Include nuts and seeds in your diet.",
-    "Use stairs instead of elevators.",
-    "Limit processed food consumption.",
-    "Take sunlight for Vitamin D.",
-    "Chew your food slowly.",
-    "Avoid late-night meals.",
-    "Stay connected with loved ones.",
-    "Use natural oils for cooking.",
-    "Do regular health checkups.",
-    "Stay mentally active (reading, puzzles).",
-    "Smile more, stress less.",
-    "Avoid eating when not hungry.",
-    "Reduce salt and sugar intake.",
-    "Keep your surroundings clean.",
-    "Don't ignore mental health.",
-    "Practice gratitude every day.",
-    "Avoid overeating even if the food is healthy."
-  ];
 
   final List<Map<String, dynamic>> allFeatures = [
     {
@@ -134,8 +101,8 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     fetchUserDetails();
     getRandomHealthTip();
-    // Start automatic tip cycling every 5 seconds
-    _tipTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    // Start automatic tip cycling every 10 seconds
+    _tipTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       getRandomHealthTip();
     });
   }
@@ -163,12 +130,18 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void getRandomHealthTip() {
-    final random = Random();
-    final index = random.nextInt(healthTips.length);
-    setState(() {
-      currentHealthTip = healthTips[index];
-    });
+  Future<void> getRandomHealthTip() async {
+    try {
+      final tip = await HealthTipsApi.getRandomTip();
+      setState(() {
+        currentHealthTip = tip['tip'] ?? 'Stay healthy and happy!';
+      });
+    } catch (e) {
+      setState(() {
+        currentHealthTip = 'Stay healthy and happy!';
+      });
+      print('Error loading health tip: $e');
+    }
   }
 
   void logout() async {
@@ -247,7 +220,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
               Expanded(
                 child: ListView(
                   children: [
@@ -416,84 +388,92 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget buildFeatureCard(Map<String, dynamic> feature) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Card(
-        color: Colors.white.withOpacity(0.95),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        elevation: 0,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Enhanced Icon Container
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      feature['color'],
-                      feature['color'].withOpacity(0.7),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => feature['screen']),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Card(
+          color: Colors.white.withOpacity(0.95),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 0,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Enhanced Icon Container
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        feature['color'],
+                        feature['color'].withOpacity(0.7),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: feature['color'].withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: feature['color'].withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  child: Icon(
+                    feature['icon'],
+                    size: 30,
+                    color: Colors.white,
+                  ),
                 ),
-                child: Icon(
-                  feature['icon'],
-                  size: 30,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      feature['title'],
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Color(0xFF2C3E50),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        feature['title'],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Color(0xFF2C3E50),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      feature['description'],
-                      style: const TextStyle(
-                        color: Colors.black54,
-                        fontSize: 14,
+                      const SizedBox(height: 4),
+                      Text(
+                        feature['description'],
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                color: feature['color'],
-                size: 20,
-              ),
-            ],
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: feature['color'],
+                  size: 20,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -519,114 +499,348 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget buildHealthTipCard(String tip) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+            spreadRadius: 2,
+          ),
+          BoxShadow(
+            color: const Color(0xFF00ACC1).withOpacity(0.1),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+            spreadRadius: 5,
           ),
         ],
       ),
-      child: Card(
-        color: Colors.white.withOpacity(0.95),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        elevation: 0,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(25),
         child: Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.95),
+                Colors.white.withOpacity(0.85),
+                const Color(0xFF00ACC1).withOpacity(0.05),
+              ],
+              stops: [0.0, 0.7, 1.0],
+            ),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Stack(
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF00ACC1), Color(0xFF007C91)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF00ACC1).withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+              // Background decorative elements
+              Positioned(
+                top: -20,
+                right: -20,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFF00ACC1).withOpacity(0.1),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -30,
+                left: -30,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFF007C91).withOpacity(0.08),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Main content
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header section with enhanced design
+                    Row(
+                      children: [
+                        // Animated icon container
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF00ACC1),
+                                Color(0xFF007C91),
+                                Color(0xFF004D61),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF00ACC1).withOpacity(0.4),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.lightbulb,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Daily Health Tip',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF004D61),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Stay healthy, stay happy!',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Enhanced refresh button
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF00ACC1).withOpacity(0.1),
+                                const Color(0xFF007C91).withOpacity(0.1),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFF00ACC1).withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: getRandomHealthTip,
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                child: const Icon(
+                                  Icons.refresh,
+                                  color: Color(0xFF00ACC1),
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.lightbulb,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Text(
-                      'Daily Health Tip',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF004D61),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // Enhanced tip content
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFF00ACC1).withOpacity(0.08),
+                            const Color(0xFF007C91).withOpacity(0.05),
+                            Colors.white.withOpacity(0.3),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF00ACC1).withOpacity(0.15),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF00ACC1).withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      const Color(0xFF00ACC1).withOpacity(0.2),
+                                      const Color(0xFF007C91).withOpacity(0.2),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '💡 Tip of the Day',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF004D61),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                Icons.favorite,
+                                color: const Color(0xFF00ACC1).withOpacity(0.6),
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            tip,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFF2C3E50),
+                              height: 1.6,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00ACC1).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(25),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Enhanced footer with progress indicator
+                    Row(
+                      children: [
+                        // Progress dots
+                        Row(
+                          children: List.generate(5, (index) => Container(
+                            width: 6,
+                            height: 6,
+                            margin: const EdgeInsets.only(right: 4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: index == 0 
+                                  ? const Color(0xFF00ACC1)
+                                  : const Color(0xFF00ACC1).withOpacity(0.3),
+                            ),
+                          )),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.schedule,
+                                size: 14,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Auto-refresh every 10s',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Share button
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF00ACC1).withOpacity(0.2),
+                                const Color(0xFF007C91).withOpacity(0.2),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFF00ACC1).withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                Share.share(
+                                  '💡 Health Tip: $currentHealthTip\n\nFrom Healthy Pathway App',
+                                  subject: 'Daily Health Tip',
+                                );
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.share,
+                                    size: 14,
+                                    color: const Color(0xFF004D61),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Share',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: const Color(0xFF004D61),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    child: IconButton(
-                      onPressed: getRandomHealthTip,
-                      icon: const Icon(Icons.refresh, color: Color(0xFF00ACC1)),
-                      tooltip: 'Get new tip',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00ACC1).withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF00ACC1).withOpacity(0.1),
-                    width: 1,
-                  ),
+                  ],
                 ),
-                child: Text(
-                  tip,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF2C3E50),
-                    height: 1.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 16,
-                    color: Colors.grey[600],
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Tips automatically change every 5 seconds!',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
               ),
             ],
           ),

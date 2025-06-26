@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../widgets/round_home_button.dart';
 
 class HealthInfoScreen extends StatefulWidget {
   const HealthInfoScreen({super.key});
@@ -178,56 +179,63 @@ class _HealthInfoScreenState extends State<HealthInfoScreen> {
 
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFB2EBF2), // Soft cyan
-              Color(0xFF00ACC1), // Calming teal
-              Color(0xFF007C91), // Deep blue-teal
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      body: Stack(
+        children: [
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFFB2EBF2), // Soft cyan
+                  Color(0xFF00ACC1), // Calming teal
+                  Color(0xFF007C91), // Deep blue-teal
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 80, 16, 16),
+              child: ListView(
+                children: [
+                  const Text(
+                    "Personal Information",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  buildField("Full Name", "fullName"),
+                  buildField("Gender", "gender"),
+                  buildField("Relationship Status", "relationshipStatus"),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Physical Attributes",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  buildField("Height", "height"),
+                  buildField("Weight", "weight"),
+                  buildField("Blood Group", "bloodGroup"),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Medical Information",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  buildField("Known Diseases", "knownDiseases"),
+                  buildField("Allergies", "allergies"),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Emergency Contact",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  buildField("Emergency Contact Name", "emergencyContactName"),
+                  buildField("Emergency Contact Number", "emergencyContactNumber"),
+                  const SizedBox(height: 20),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 80, 16, 16),
-          child: ListView(
-            children: [
-              const Text(
-                "Personal Information",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              buildField("Full Name", "fullName"),
-              buildField("Gender", "gender"),
-              buildField("Relationship Status", "relationshipStatus"),
-              const SizedBox(height: 20),
-              const Text(
-                "Physical Attributes",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              buildField("Height", "height"),
-              buildField("Weight", "weight"),
-              buildField("Blood Group", "bloodGroup"),
-              const SizedBox(height: 20),
-              const Text(
-                "Medical Information",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              buildField("Known Diseases", "knownDiseases"),
-              buildField("Allergies", "allergies"),
-              const SizedBox(height: 20),
-              const Text(
-                "Emergency Contact",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              buildField("Emergency Contact Name", "emergencyContactName"),
-              buildField("Emergency Contact Number", "emergencyContactNumber"),
-            ],
-          ),
-        ),
+          const RoundHomeButton(),
+        ],
       ),
     );
   }
