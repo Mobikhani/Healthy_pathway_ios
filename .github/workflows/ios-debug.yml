@@ -1,4 +1,4 @@
-name: Build iOS IPA (Simple)
+name: Build iOS IPA (Debug)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch: # Allows manual trigger
 
 jobs:
-  build-ios:
+  build-ios-debug:
     runs-on: macos-latest
     
     steps:
@@ -24,6 +24,15 @@ jobs:
     - name: Show Flutter version
       run: flutter --version
       
+    - name: Show project structure
+      run: |
+        echo "=== Project Structure ==="
+        ls -la
+        echo "=== iOS Directory ==="
+        ls -la ios/
+        echo "=== Flutter Directory ==="
+        ls -la ios/Flutter/
+        
     - name: Get Flutter dependencies
       run: flutter pub get
       
@@ -33,14 +42,27 @@ jobs:
     - name: Generate iOS files
       run: flutter build ios --no-codesign --debug
       
+    - name: Show generated files
+      run: |
+        echo "=== Generated Files ==="
+        ls -la ios/Flutter/
+        echo "=== Podfile exists ==="
+        ls -la ios/Podfile || echo "Podfile not found"
+        
     - name: Install iOS dependencies
       run: |
         cd ios
-        pod install --repo-update
+        pod install --verbose
         cd ..
         
-    - name: Build iOS IPA
-      run: flutter build ipa --release --no-codesign
+    - name: Show pod installation results
+      run: |
+        echo "=== Pod Installation Results ==="
+        ls -la ios/Pods/
+        
+    - name: Build iOS IPA (Debug)
+      run: |
+        flutter build ipa --debug --no-codesign --verbose
       
     - name: Show build results
       run: |
@@ -50,8 +72,9 @@ jobs:
         
     - name: Upload IPA artifact
       uses: actions/upload-artifact@v4
+      if: success()
       with:
-        name: ios-simple-build
+        name: ios-debug-build
         path: build/ios/ipa/*.ipa
         retention-days: 30
         
@@ -59,7 +82,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: build-logs-simple
+        name: build-logs-debug
         path: |
           build/
           ios/Pods/
