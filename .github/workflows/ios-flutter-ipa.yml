@@ -1,0 +1,67 @@
+name: Build iOS IPA (Flutter Method)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  build-ios-flutter:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.3'
+        channel: 'stable'
+        
+    - name: Get Flutter dependencies
+      run: flutter pub get
+      
+    - name: Install iOS dependencies
+      run: |
+        cd ios
+        pod install
+        cd ..
+        
+    - name: Build iOS IPA with Flutter
+      run: |
+        echo "=== Building IPA with Flutter ==="
+        flutter build ipa --release --no-codesign --verbose
+        
+    - name: Find and copy IPA files
+      run: |
+        echo "=== Finding IPA files ==="
+        find . -name "*.ipa" -type f
+        
+        echo "=== Creating IPA directory ==="
+        mkdir -p build/ios/ipa
+        
+        echo "=== Copying IPA files ==="
+        find . -name "*.ipa" -type f -exec cp {} build/ios/ipa/ \;
+        
+        echo "=== Final IPA directory ==="
+        ls -la build/ios/ipa/
+        
+    - name: Upload IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: healthy-pathway-flutter-ipa
+        path: build/ios/ipa/*.ipa
+        retention-days: 30
+        
+    - name: Upload all files
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: all-files
+        path: |
+          build/
+          ios/
+        retention-days: 7 
