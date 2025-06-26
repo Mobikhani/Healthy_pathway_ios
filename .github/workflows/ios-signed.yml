@@ -31,22 +31,27 @@ jobs:
       run: flutter pub get
       
     - name: Setup code signing
-      uses: apple-actions/import-codesigning-certs@v1
-      with:
-        p12-file-base64: ${{ secrets.P12_BASE64 }}
-        p12-password: ${{ secrets.P12_PASSWORD }}
+      run: |
+        # Create keychain
+        security create-keychain -p "" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "" build.keychain
+        security set-keychain-settings build.keychain
         
-    - name: Setup provisioning profile
-      uses: apple-actions/download-provisioning-profiles@v1
-      with:
-        bundle-id: 'com.example.healthyPathway'
-        profile-type: 'IOS_APP_STORE'
-        issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
-        api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
-        api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        # Import certificate if provided
+        if [ -n "${{ secrets.P12_BASE64 }}" ]; then
+          echo "${{ secrets.P12_BASE64 }}" | base64 --decode > certificate.p12
+          security import certificate.p12 -k build.keychain -P "${{ secrets.P12_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
+        fi
         
     - name: Build iOS IPA (Signed)
-      run: flutter build ipa --release
+      run: |
+        if [ -n "${{ secrets.P12_BASE64 }}" ]; then
+          flutter build ipa --release
+        else
+          flutter build ipa --release --no-codesign
+        fi
       
     - name: Upload signed IPA artifact
       uses: actions/upload-artifact@v4
