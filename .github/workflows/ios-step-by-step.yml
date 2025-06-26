@@ -1,0 +1,102 @@
+name: Build iOS Step by Step
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  build-ios-step-by-step:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.3'
+        channel: 'stable'
+        
+    - name: Get Flutter dependencies
+      run: flutter pub get
+      
+    - name: Check Flutter doctor
+      run: flutter doctor -v
+      
+    - name: Step 1: Generate iOS files
+      run: |
+        echo "=== Step 1: Generating iOS files ==="
+        flutter build ios --no-codesign --debug
+        echo "Step 1 completed"
+        
+    - name: Step 2: Install pods
+      run: |
+        echo "=== Step 2: Installing pods ==="
+        cd ios
+        pod install
+        cd ..
+        echo "Step 2 completed"
+        
+    - name: Step 3: Build iOS app
+      run: |
+        echo "=== Step 3: Building iOS app ==="
+        flutter build ios --no-codesign --release
+        echo "Step 3 completed"
+        
+    - name: Step 4: Check build results
+      run: |
+        echo "=== Step 4: Checking build results ==="
+        echo "Build directory contents:"
+        ls -la build/ || echo "No build directory"
+        echo "iOS build directory contents:"
+        ls -la build/ios/ || echo "No iOS build directory"
+        echo "Looking for .app files:"
+        find build/ -name "*.app" -type d || echo "No .app files found"
+        
+    - name: Step 5: Create IPA manually
+      run: |
+        echo "=== Step 5: Creating IPA manually ==="
+        if [ -d "build/ios/archive/Runner.xcarchive" ]; then
+          echo "Archive found, creating IPA..."
+          xcodebuild -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist ios/exportOptions.plist
+        else
+          echo "No archive found, trying alternative method..."
+          mkdir -p build/ios/ipa
+          cd build/ios/archive
+          zip -r ../../ipa/Runner.ipa .
+          cd ../../..
+        fi
+        echo "Step 5 completed"
+        
+    - name: Step 6: Final check
+      run: |
+        echo "=== Step 6: Final check ==="
+        echo "IPA directory contents:"
+        ls -la build/ios/ipa/ || echo "No IPA directory"
+        echo "Looking for IPA files:"
+        find build/ -name "*.ipa" || echo "No IPA files found"
+        
+    - name: Upload IPA artifact
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: ios-step-build
+        path: build/ios/ipa/*.ipa
+        retention-days: 30
+        
+    - name: Upload all build artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: all-build-artifacts
+        path: |
+          build/
+          ios/Pods/
+        retention-days: 7 
