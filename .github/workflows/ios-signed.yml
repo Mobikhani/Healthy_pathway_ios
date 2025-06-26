@@ -1,0 +1,66 @@
+name: Build iOS IPA (Signed)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  build-ios-signed:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.3'
+        channel: 'stable'
+        
+    - name: Install iOS dependencies
+      run: |
+        cd ios
+        pod install
+        cd ..
+        
+    - name: Get Flutter dependencies
+      run: flutter pub get
+      
+    - name: Setup code signing
+      uses: apple-actions/import-codesigning-certs@v1
+      with:
+        p12-file-base64: ${{ secrets.P12_BASE64 }}
+        p12-password: ${{ secrets.P12_PASSWORD }}
+        
+    - name: Setup provisioning profile
+      uses: apple-actions/download-provisioning-profiles@v1
+      with:
+        bundle-id: 'com.example.healthyPathway'
+        profile-type: 'IOS_APP_STORE'
+        issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+        api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
+        api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        
+    - name: Build iOS IPA (Signed)
+      run: flutter build ipa --release
+      
+    - name: Upload signed IPA artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-signed-build
+        path: build/ios/ipa/*.ipa
+        retention-days: 30
+        
+    - name: Upload build logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: build-logs-signed
+        path: |
+          build/ios/archive/Runner.xcarchive
+          build/ios/ipa
+        retention-days: 7 

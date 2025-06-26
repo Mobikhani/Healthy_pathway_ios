@@ -45,5 +45,23 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Camera and Photo Library Permissions -->
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to take photos for health information.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to select images for health information.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app needs permission to save photos to your photo library.</string>
+	<!-- Microphone Permission (if needed for future features) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app may need microphone access for future voice features.</string>
+	<!-- Location Permission (if needed for future features) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app may need location access for future health tracking features.</string>
+	<!-- HealthKit Permission (if needed for future features) -->
+	<key>NSHealthShareUsageDescription</key>
+	<string>This app may need access to your health data for better health tracking.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>This app may need to update your health data for tracking purposes.</string>
 </dict>
 </plist>
