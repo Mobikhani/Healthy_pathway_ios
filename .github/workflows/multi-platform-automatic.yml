@@ -1,0 +1,176 @@
+name: 🚀 Multi-Platform Automatic Build
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'lib/**'
+      - 'ios/**'
+      - 'android/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'lib/**'
+      - 'ios/**'
+      - 'android/**'
+      - 'pubspec.yaml'
+  workflow_dispatch: # Manual trigger
+  schedule:
+    # Build every day at 2 AM UTC to ensure everything works
+    - cron: '0 2 * * *'
+
+env:
+  FLUTTER_VERSION: '3.32.3'
+  BUILD_NUMBER: ${{ github.run_number }}
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 🔧 Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache-key: 'flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}'
+        
+    - name: 📦 Get Flutter dependencies
+      run: |
+        echo "🔄 Getting Flutter dependencies..."
+        flutter pub get
+        
+    - name: 🔍 Verify Android configuration
+      run: |
+        echo "🔍 Checking Android configuration..."
+        echo "📱 Package name: $(grep 'applicationId' android/app/build.gradle | head -1)"
+        echo "🏷️ Build number: ${{ env.BUILD_NUMBER }}"
+        
+    - name: 🏗️ Build Android APK
+      run: |
+        echo "🤖 Building Android APK..."
+        echo "🔄 Build started at: $(date)"
+        flutter build apk --release
+        echo "✅ Build completed at: $(date)"
+        
+    - name: ✅ Verify APK creation
+      run: |
+        echo "✅ Checking if APK was created..."
+        ls -la build/app/outputs/flutter-apk/
+        if [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
+          echo "✅ APK file created successfully!"
+          echo "📦 File size: $(du -h build/app/outputs/flutter-apk/app-release.apk | cut -f1)"
+        else
+          echo "❌ APK file not found!"
+          exit 1
+        fi
+      
+    - name: 📤 Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: healthy-pathway-android-v${{ env.BUILD_NUMBER }}
+        path: build/app/outputs/flutter-apk/*.apk
+        retention-days: 30
+        if-no-files-found: error
+
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 🔧 Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache-key: 'flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}'
+        
+    - name: 📦 Get Flutter dependencies
+      run: |
+        echo "🔄 Getting Flutter dependencies..."
+        flutter pub get
+        
+    - name: 📱 Install iOS dependencies
+      run: |
+        echo "🍎 Installing iOS dependencies..."
+        cd ios
+        pod install --repo-update
+        cd ..
+        
+    - name: 🔍 Verify iOS configuration
+      run: |
+        echo "🔍 Checking iOS configuration..."
+        echo "📱 Bundle ID: $(grep -A 1 'PRODUCT_BUNDLE_IDENTIFIER' ios/Runner.xcodeproj/project.pbxproj | grep -v 'PRODUCT_BUNDLE_IDENTIFIER' | head -1)"
+        echo "🏷️ Build number: ${{ env.BUILD_NUMBER }}"
+        
+    - name: 🏗️ Build iOS IPA (Unsigned)
+      run: |
+        echo "📱 Building iOS IPA..."
+        echo "🔄 Build started at: $(date)"
+        flutter build ipa --release --no-codesign --verbose
+        echo "✅ Build completed at: $(date)"
+        
+    - name: ✅ Verify IPA creation
+      run: |
+        echo "✅ Checking if IPA was created..."
+        ls -la build/ios/ipa/
+        if [ -f "build/ios/ipa/healthy_pathway.ipa" ]; then
+          echo "✅ IPA file created successfully!"
+          echo "📦 File size: $(du -h build/ios/ipa/healthy_pathway.ipa | cut -f1)"
+        else
+          echo "❌ IPA file not found!"
+          exit 1
+        fi
+      
+    - name: 📤 Upload IPA artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: healthy-pathway-ios-v${{ env.BUILD_NUMBER }}
+        path: build/ios/ipa/*.ipa
+        retention-days: 30
+        if-no-files-found: error
+
+  build-summary:
+    runs-on: ubuntu-latest
+    needs: [build-android, build-ios]
+    if: always()
+    
+    steps:
+    - name: 📊 Build Summary
+      run: |
+        echo "🎉 Multi-Platform Build Summary:"
+        echo "✅ Flutter version: ${{ env.FLUTTER_VERSION }}"
+        echo "🏷️ Build number: ${{ env.BUILD_NUMBER }}"
+        echo "📅 Build date: $(date)"
+        echo ""
+        echo "📱 iOS Build: ${{ needs.build-ios.result }}"
+        echo "🤖 Android Build: ${{ needs.build-android.result }}"
+        echo ""
+        echo "📁 Download from Actions tab → Artifacts"
+        echo "🔗 Build URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        
+    - name: 🔔 Build Status Notification
+      run: |
+        if [ "${{ needs.build-ios.result }}" == "success" ] && [ "${{ needs.build-android.result }}" == "success" ]; then
+          echo "✅ All builds SUCCESSFUL!"
+          echo "📱 iOS IPA ready for download"
+          echo "🤖 Android APK ready for download"
+        elif [ "${{ needs.build-ios.result }}" == "success" ]; then
+          echo "⚠️ iOS build SUCCESSFUL, Android build FAILED"
+        elif [ "${{ needs.build-android.result }}" == "success" ]; then
+          echo "⚠️ Android build SUCCESSFUL, iOS build FAILED"
+        else
+          echo "❌ All builds FAILED!"
+        fi
+        echo "🔗 Build URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" 

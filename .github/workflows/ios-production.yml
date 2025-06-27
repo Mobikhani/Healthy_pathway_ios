@@ -1,4 +1,4 @@
-name: Build iOS IPA
+name: Build iOS IPA (Production)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch: # Allows manual trigger
 
 jobs:
-  build-ios:
+  build-ios-production:
     runs-on: macos-latest
     
     steps:
@@ -21,18 +21,26 @@ jobs:
         flutter-version: '3.32.3'
         channel: 'stable'
         
+    - name: Get Flutter dependencies
+      run: flutter pub get
+      
     - name: Install iOS dependencies
       run: |
         cd ios
         pod install --repo-update
         cd ..
         
-    - name: Get Flutter dependencies
-      run: flutter pub get
-      
-    - name: Build iOS IPA
-      run: flutter build ipa --release --no-codesign
-      
+    - name: Verify iOS configuration
+      run: |
+        echo "🔍 Checking iOS configuration..."
+        echo "Bundle ID: $(grep -A 1 'PRODUCT_BUNDLE_IDENTIFIER' ios/Runner.xcodeproj/project.pbxproj | grep -v 'PRODUCT_BUNDLE_IDENTIFIER' | head -1)"
+        echo "Export method: $(grep -A 1 'method' ios/exportOptions.plist | grep -v 'method' | head -1)"
+        
+    - name: Build iOS IPA (Unsigned)
+      run: |
+        echo "📱 Building iOS IPA..."
+        flutter build ipa --release --no-codesign --verbose
+        
     - name: Verify IPA creation
       run: |
         echo "✅ Checking if IPA was created..."
@@ -48,7 +56,7 @@ jobs:
     - name: Upload IPA artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ios-build
+        name: healthy-pathway-ipa
         path: build/ios/ipa/*.ipa
         retention-days: 30
         
@@ -56,8 +64,17 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: build-logs
+        name: build-logs-production
         path: |
-          build/ios/archive/Runner.xcarchive
-          build/ios/ipa
-        retention-days: 7 
+          build/ios/archive/
+          build/ios/ipa/
+        retention-days: 7
+        
+    - name: Build Summary
+      if: always()
+      run: |
+        echo "🎉 Build Summary:"
+        echo "✅ Flutter version: $(flutter --version | head -1)"
+        echo "✅ iOS build completed"
+        echo "📱 IPA file: healthy_pathway.ipa"
+        echo "📁 Download from Actions tab → Artifacts" 

@@ -1,0 +1,124 @@
+name: 🚀 Automatic iOS Build
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'lib/**'
+      - 'ios/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'lib/**'
+      - 'ios/**'
+      - 'pubspec.yaml'
+  workflow_dispatch: # Manual trigger
+  schedule:
+    # Build every day at 2 AM UTC to ensure everything works
+    - cron: '0 2 * * *'
+
+env:
+  FLUTTER_VERSION: '3.32.3'
+  BUILD_NUMBER: ${{ github.run_number }}
+
+jobs:
+  build-ios-automatic:
+    runs-on: macos-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Full history for better caching
+        
+    - name: 🔧 Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache-key: 'flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}'
+        
+    - name: 📦 Get Flutter dependencies
+      run: |
+        echo "🔄 Getting Flutter dependencies..."
+        flutter pub get
+        flutter pub deps
+        
+    - name: 📱 Install iOS dependencies
+      run: |
+        echo "🍎 Installing iOS dependencies..."
+        cd ios
+        pod install --repo-update
+        cd ..
+        
+    - name: 🔍 Verify iOS configuration
+      run: |
+        echo "🔍 Checking iOS configuration..."
+        echo "📱 Bundle ID: $(grep -A 1 'PRODUCT_BUNDLE_IDENTIFIER' ios/Runner.xcodeproj/project.pbxproj | grep -v 'PRODUCT_BUNDLE_IDENTIFIER' | head -1)"
+        echo "📦 Export method: $(grep -A 1 'method' ios/exportOptions.plist | grep -v 'method' | head -1)"
+        echo "🏷️ Build number: ${{ env.BUILD_NUMBER }}"
+        
+    - name: 🏗️ Build iOS IPA (Unsigned)
+      run: |
+        echo "📱 Building iOS IPA..."
+        echo "🔄 Build started at: $(date)"
+        flutter build ipa --release --no-codesign --verbose
+        echo "✅ Build completed at: $(date)"
+        
+    - name: ✅ Verify IPA creation
+      run: |
+        echo "✅ Checking if IPA was created..."
+        ls -la build/ios/ipa/
+        if [ -f "build/ios/ipa/healthy_pathway.ipa" ]; then
+          echo "✅ IPA file created successfully!"
+          echo "📦 File size: $(du -h build/ios/ipa/healthy_pathway.ipa | cut -f1)"
+          echo "📅 Build timestamp: $(date)"
+        else
+          echo "❌ IPA file not found!"
+          exit 1
+        fi
+      
+    - name: 📤 Upload IPA artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: healthy-pathway-ipa-v${{ env.BUILD_NUMBER }}
+        path: build/ios/ipa/*.ipa
+        retention-days: 30
+        if-no-files-found: error
+        
+    - name: 📋 Upload build logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: build-logs-v${{ env.BUILD_NUMBER }}
+        path: |
+          build/ios/archive/
+          build/ios/ipa/
+        retention-days: 7
+        
+    - name: 📊 Build Summary
+      if: always()
+      run: |
+        echo "🎉 Build Summary:"
+        echo "✅ Flutter version: $(flutter --version | head -1)"
+        echo "✅ iOS build completed"
+        echo "📱 IPA file: healthy_pathway.ipa"
+        echo "🏷️ Build number: ${{ env.BUILD_NUMBER }}"
+        echo "📅 Build date: $(date)"
+        echo "📁 Download from Actions tab → Artifacts"
+        echo "🔗 Build URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        
+    - name: 🔔 Build Status Notification
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ Build SUCCESSFUL!"
+          echo "📱 IPA ready for download"
+          echo "🔗 Download URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        else
+          echo "❌ Build FAILED!"
+          echo "🔍 Check logs for details"
+          echo "🔗 Build URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        fi 

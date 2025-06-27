@@ -1,119 +1,142 @@
-# iOS Build Guide - GitHub Actions
+# iOS Build Guide for Healthy Pathway App
 
-This guide explains how to build iOS .ipa files using GitHub Actions without needing a Mac locally.
+## Prerequisites
 
-## Quick Start (Unsigned Build)
+1. **Apple Developer Account**: You need a paid Apple Developer account ($99/year)
+2. **Xcode**: Latest version installed on a Mac
+3. **Flutter**: Latest stable version
+4. **iOS Device**: Physical device for testing (not just simulator)
 
-1. **Push your code to GitHub** (main or master branch)
-2. **Go to Actions tab** in your GitHub repository
-3. **Select "Build iOS IPA" workflow**
-4. **Click "Run workflow"** to manually trigger the build
-5. **Download the .ipa** from the artifacts section
+## Step-by-Step Build Process
 
-## Workflow Files
+### 1. Setup Apple Developer Account
+- Go to [developer.apple.com](https://developer.apple.com)
+- Sign in with your Apple ID
+- Enroll in the Apple Developer Program
+- Add your device UDID to your account
 
-### 1. `ios.yml` - Unsigned Build
-- Builds .ipa without code signing
-- Good for testing and development
-- No Apple Developer account required
+### 2. Configure Xcode Project
+1. Open `ios/Runner.xcworkspace` in Xcode
+2. Select the "Runner" project in the navigator
+3. Select the "Runner" target
+4. Go to "Signing & Capabilities" tab
+5. Check "Automatically manage signing"
+6. Select your Team (Apple Developer account)
+7. The Bundle Identifier should be: `com.healthypathway.app`
 
-### 2. `ios-signed.yml` - Signed Build
-- Builds .ipa with code signing
-- Required for App Store distribution
-- Requires Apple Developer account setup
+### 3. Build the IPA
 
-## Setup Instructions
+#### Option A: Using the Build Script (Recommended)
+```bash
+# On Mac/Linux
+chmod +x build_ios.sh
+./build_ios.sh
 
-### For Unsigned Builds (Testing)
-
-1. **Push your code to GitHub**
-2. **The workflow will run automatically** on push to main/master
-3. **Download the .ipa** from the Actions tab
-
-### For Signed Builds (App Store)
-
-1. **Get Apple Developer Account** ($99/year)
-2. **Create App Store Connect App**
-3. **Generate certificates and profiles**
-4. **Add GitHub Secrets**
-
-#### Required GitHub Secrets:
-
-```
-P12_BASE64 - Your p12 certificate (base64 encoded)
-P12_PASSWORD - Password for your p12 certificate
-APPSTORE_ISSUER_ID - Your App Store Connect issuer ID
-APPSTORE_KEY_ID - Your App Store Connect API key ID
-APPSTORE_PRIVATE_KEY - Your App Store Connect private key
+# On Windows
+build_ios.bat
 ```
 
-#### How to get these values:
+#### Option B: Manual Build
+```bash
+# Clean and get dependencies
+flutter clean
+flutter pub get
 
-1. **P12 Certificate:**
-   - Export from Keychain Access on Mac
-   - Convert to base64: `base64 -i Certificates.p12 | pbcopy`
+# Build for iOS
+flutter build ios --release --no-codesign
 
-2. **App Store Connect API:**
-   - Go to App Store Connect → Users and Access → Keys
-   - Generate new API key
-   - Note the Key ID and Issuer ID
+# Open Xcode and archive manually
+open ios/Runner.xcworkspace
+```
 
-## Manual Build Trigger
+### 4. Archive and Export in Xcode
+1. In Xcode, select "Product" → "Archive"
+2. Wait for the archive to complete
+3. In the Organizer window, select your archive
+4. Click "Distribute App"
+5. Choose "Ad Hoc" distribution
+6. Select your team and provisioning profile
+7. Choose export location
+8. The IPA file will be created
 
-You can manually trigger builds:
+## Installing the IPA on Your Device
 
-1. Go to **Actions** tab
-2. Select **"Build iOS IPA"** workflow
-3. Click **"Run workflow"**
-4. Select branch and click **"Run workflow"**
+### Method 1: Xcode (Easiest)
+1. Connect your iOS device to your Mac
+2. Open Xcode
+3. Go to "Window" → "Devices and Simulators"
+4. Select your device
+5. Drag and drop the IPA file to the "Installed Apps" section
 
-## Troubleshooting
+### Method 2: Apple Configurator 2
+1. Download Apple Configurator 2 from the Mac App Store
+2. Connect your device
+3. Drag and drop the IPA file to install
 
-### Common Issues:
+### Method 3: AltStore (For Windows Users)
+1. Install AltStore on your iOS device
+2. Use AltServer on your computer to install the IPA
 
-1. **Pod install fails:**
-   - Check if all iOS dependencies are compatible
-   - Update pod versions in `ios/Podfile.lock`
+### Method 4: Third-party Tools
+- **3uTools**: Popular Windows tool for iOS management
+- **iMazing**: Professional iOS management tool
 
-2. **Build fails:**
-   - Check the build logs in artifacts
-   - Verify all permissions are set in `Info.plist`
+## Troubleshooting Common Issues
 
-3. **Code signing fails:**
-   - Verify all secrets are correctly set
-   - Check certificate and profile validity
+### Issue: "Untrusted Developer" Error
+**Solution**: 
+1. Go to Settings → General → VPN & Device Management
+2. Find your developer certificate
+3. Tap "Trust [Developer Name]"
 
-### Build Logs
+### Issue: App Won't Install
+**Possible Causes**:
+- Device not registered in Apple Developer account
+- Wrong provisioning profile
+- Bundle identifier mismatch
 
-Build logs are automatically uploaded as artifacts. Check them for detailed error information.
+**Solutions**:
+1. Verify device UDID is in your Apple Developer account
+2. Check bundle identifier matches exactly
+3. Regenerate provisioning profiles
 
-## Alternative: Codemagic
+### Issue: App Crashes on Launch
+**Possible Causes**:
+- Missing permissions in Info.plist
+- Code signing issues
+- Architecture mismatch
 
-If GitHub Actions doesn't work for you, try [Codemagic](https://codemagic.io):
+**Solutions**:
+1. Check all required permissions are in Info.plist
+2. Verify code signing in Xcode
+3. Ensure building for correct architecture
 
-1. **Sign up** for Codemagic
-2. **Connect your GitHub repository**
-3. **Configure iOS build**
-4. **Build and download .ipa**
+## Important Notes
 
-## Local Testing
+1. **Bundle Identifier**: Must be unique and follow reverse domain notation
+2. **Provisioning Profile**: Must include your device UDID
+3. **Code Signing**: Must use valid certificates
+4. **Permissions**: All required permissions must be declared in Info.plist
 
-To test your app before building .ipa:
+## Testing Checklist
 
-1. **Use iOS Simulator** (requires Mac)
-2. **Use TestFlight** (requires signed build)
-3. **Use Firebase App Distribution** (for testing)
+- [ ] App launches without crashing
+- [ ] All features work as expected
+- [ ] Permissions are requested properly
+- [ ] App responds to device rotation
+- [ ] Memory usage is reasonable
+- [ ] No console errors in Xcode
 
-## Next Steps
+## Distribution Options
 
-1. **Test the unsigned build** first
-2. **Set up code signing** for App Store distribution
-3. **Upload to TestFlight** for beta testing
-4. **Submit to App Store** when ready
+1. **Ad Hoc**: For testing on specific devices
+2. **Enterprise**: For internal company distribution
+3. **App Store**: For public distribution (requires App Store review)
 
 ## Support
 
 If you encounter issues:
-1. Check the build logs in GitHub Actions
-2. Verify all configurations are correct
-3. Ensure all dependencies support iOS 
+1. Check Xcode console for error messages
+2. Verify all prerequisites are met
+3. Ensure device is properly registered
+4. Check Apple Developer account status 

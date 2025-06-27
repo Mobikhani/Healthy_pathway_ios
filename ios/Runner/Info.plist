@@ -45,6 +45,15 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedDevices</key>
+	<array>
+		<string>iPhone</string>
+		<string>iPad</string>
+	</array>
 	<!-- Camera and Photo Library Permissions -->
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs camera access to take photos for health information.</string>

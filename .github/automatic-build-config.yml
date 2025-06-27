@@ -1,0 +1,75 @@
+# Automatic Build Configuration
+# This file controls the automatic build settings
+
+# Build Settings
+build:
+  # Flutter version to use
+  flutter_version: '3.32.3'
+  
+  # Build number format
+  build_number_format: 'v{number}'
+  
+  # Artifact retention days
+  retention_days: 30
+  
+  # Build logs retention days
+  logs_retention_days: 7
+
+# Trigger Settings
+triggers:
+  # Branches that trigger automatic builds
+  branches:
+    - main
+    - master
+    - develop
+  
+  # File paths that trigger builds when changed
+  paths:
+    - 'lib/**'
+    - 'ios/**'
+    - 'android/**'
+    - 'pubspec.yaml'
+    - 'pubspec.lock'
+  
+  # Schedule builds (cron format)
+  schedule:
+    # Daily build at 2 AM UTC
+    - '0 2 * * *'
+  
+  # Manual trigger enabled
+  manual_trigger: true
+
+# Platform Settings
+platforms:
+  ios:
+    enabled: true
+    build_type: 'release'
+    codesign: false
+    bundle_id: 'com.healthypathway.app'
+    
+  android:
+    enabled: true
+    build_type: 'release'
+    package_name: 'com.example.healthy_pathway'
+
+# Notifications
+notifications:
+  # Build status notifications
+  build_status: true
+  
+  # Success notifications
+  success: true
+  
+  # Failure notifications
+  failure: true
+
+# Caching
+caching:
+  # Enable Flutter caching
+  flutter: true
+  
+  # Enable dependency caching
+  dependencies: true
+  
+  # Cache key format
+  cache_key: 'flutter-{version}-{hash}' 

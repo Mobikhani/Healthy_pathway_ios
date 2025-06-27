@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>method</key>
-	<string>development</string>
+	<string>ad-hoc</string>
 	<key>teamID</key>
 	<string>$(DEVELOPMENT_TEAM)</string>
 	<key>uploadBitcode</key>
@@ -12,5 +12,7 @@
 	<false/>
 	<key>compileBitcode</key>
 	<false/>
+	<key>thinning</key>
+	<string>&lt;none&gt;</string>
 </dict>
 </plist> 
