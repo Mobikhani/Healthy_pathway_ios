@@ -691,15 +691,16 @@ class _HomeScreenState extends State<HomeScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white.withOpacity(0.95),
-                Colors.white.withOpacity(0.85),
-                const Color(0xFF00ACC1).withOpacity(0.05),
+                Colors.blue.shade100,
+                Colors.cyan.shade100,
+                Colors.teal.shade100,
+                Colors.blue.shade50,
               ],
-              stops: [0.0, 0.7, 1.0],
+              stops: [0.0, 0.3, 0.7, 1.0],
             ),
             border: Border.all(
-              color: Colors.white.withOpacity(0.3),
-              width: 1,
+              color: Colors.blue.shade200,
+              width: 2,
             ),
           ),
           child: Stack(
@@ -715,7 +716,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        const Color(0xFF00ACC1).withOpacity(0.1),
+                        const Color(0xFF00ACC1).withOpacity(0.2),
                         Colors.transparent,
                       ],
                     ),
@@ -732,7 +733,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        const Color(0xFF007C91).withOpacity(0.08),
+                        const Color(0xFF007C91).withOpacity(0.15),
                         Colors.transparent,
                       ],
                     ),
@@ -797,7 +798,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 'Stay healthy, stay happy!',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey[600],
+                                  color: Colors.blue.shade700,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -809,14 +810,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                const Color(0xFF00ACC1).withOpacity(0.1),
-                                const Color(0xFF007C91).withOpacity(0.1),
+                                const Color(0xFF00ACC1).withOpacity(0.2),
+                                const Color(0xFF007C91).withOpacity(0.2),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: const Color(0xFF00ACC1).withOpacity(0.2),
-                              width: 1,
+                              color: const Color(0xFF00ACC1).withOpacity(0.3),
+                              width: 2,
                             ),
                           ),
                           child: Material(
@@ -849,14 +850,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            const Color(0xFF00ACC1).withOpacity(0.08),
+                            Colors.white.withOpacity(0.9),
+                            const Color(0xFF00ACC1).withOpacity(0.1),
                             const Color(0xFF007C91).withOpacity(0.05),
-                            Colors.white.withOpacity(0.3),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: const Color(0xFF00ACC1).withOpacity(0.15),
+                          color: const Color(0xFF00ACC1).withOpacity(0.2),
                           width: 1.5,
                         ),
                         boxShadow: [

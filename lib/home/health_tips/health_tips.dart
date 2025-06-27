@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
@@ -12,15 +11,8 @@ class HealthTipsScreen extends StatefulWidget {
   State<HealthTipsScreen> createState() => _HealthTipsScreenState();
 }
 
-class _HealthTipsScreenState extends State<HealthTipsScreen> 
-    with TickerProviderStateMixin {
-  
+class _HealthTipsScreenState extends State<HealthTipsScreen> {
   Map<String, dynamic> currentTip = {};
-  late AnimationController _animationController;
-  late AnimationController _pulseController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _slideAnimation;
-  late Animation<double> _pulseAnimation;
   Timer? _autoChangeTimer;
   int _tipIndex = 0;
   List<String> categories = [];
@@ -33,175 +25,227 @@ class _HealthTipsScreenState extends State<HealthTipsScreen>
   void initState() {
     super.initState();
     
-    // Initialize animations
-    _animationController = AnimationController(
-      duration: Duration(milliseconds: 800),
-      vsync: this,
-    );
-    
-    _pulseController = AnimationController(
-      duration: Duration(milliseconds: 1500),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-
-    _slideAnimation = Tween<double>(begin: 50.0, end: 0.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
-    );
-
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-
-    // Initialize with default tip
+    // Initialize with default tip immediately
     currentTip = {
-      'tip': 'Stay healthy and happy! Remember to drink water, exercise regularly, and get enough sleep.',
+      'tip': '💡 Stay healthy and happy! Drink water, exercise, and sleep well.',
       'category': 'Health',
       'icon': '💡',
       'source': 'Healthy Pathway',
     };
 
-    // Load categories and initial tip
-    _loadCategories();
+    // Initialize categories immediately with fallback
+    categories = ['All', 'Health', 'Nutrition', 'Fitness', 'Mental Health'];
     
-    // Load initial tip immediately
-    getRandomTip();
-    startAutoChange();
+    // Start async initialization
+    _init();
   }
 
-  void _loadCategories() {
-    categories = ['All', ...HealthTipsApi.getAllCategories()];
-    print('Loaded categories: $categories'); // Debug print
-    HealthTipsApi.printCategoryStats(); // Print category statistics
+  Future<void> _init() async {
+    print('🔄 Starting async initialization...'); // Debug print
+    
+    try {
+      // Step 1: Load categories (synchronously)
+      _loadCategories();
+      print('📋 Categories loaded: $categories'); // Debug print
+      
+      // Step 2: Await tip loading
+      await getRandomTip();
+      print('💡 Initial tip loaded: ${currentTip['tip']}'); // Debug print
+      
+      // Step 3: Start auto-change timer
+      startAutoChange();
+      print('⏰ Auto-change timer started'); // Debug print
+      
+    } catch (e) {
+      print('❌ Error during initialization: $e');
+      // Ensure we have fallback data
+      if (currentTip['tip'] == null || currentTip['tip'].toString().isEmpty) {
+        setState(() {
+          currentTip = {
+            'tip': '💡 Stay healthy and happy! Drink water, exercise, and sleep well.',
+            'category': 'Health',
+            'icon': '💡',
+            'source': 'Healthy Pathway',
+          };
+        });
+        print('🛡️ Using fallback tip due to initialization error'); // Debug print
+      }
+    }
   }
 
-  // Helper method to get category color
+  Future<void> _loadCategories() async {
+    try {
+      final apiCategories = HealthTipsApi.getAllCategories();
+      if (apiCategories.isNotEmpty) {
+        setState(() {
+          categories = ['All', ...apiCategories];
+        });
+        print('Categories updated from API: $categories'); // Debug print
+      } else {
+        print('API returned empty categories, keeping defaults'); // Debug print
+      }
+    } catch (e) {
+      print('Error loading categories: $e');
+      // Keep default categories if API fails
+    }
+  }
+
+  // Simple category color method
   Color _getCategoryColor(String category) {
     switch (category.toLowerCase()) {
       case 'hydration':
-        return const Color(0xFF2196F3);
+        return Colors.blue;
       case 'sleep':
-        return const Color(0xFF673AB7);
+        return Colors.purple;
       case 'nutrition':
-        return const Color(0xFF4CAF50);
+        return Colors.green;
       case 'fitness':
-        return const Color(0xFFFF5722);
+        return Colors.orange;
       case 'mental health':
-        return const Color(0xFF9C27B0);
+        return Colors.pink;
       case 'hygiene':
-        return const Color(0xFF00BCD4);
+        return Colors.cyan;
       case 'eye health':
-        return const Color(0xFF795548);
+        return Colors.brown;
       case 'posture':
-        return const Color(0xFF009688);
+        return Colors.teal;
       case 'breathing':
-        return const Color(0xFF607D8B);
+        return Colors.grey;
       case 'social health':
-        return const Color(0xFF3F51B5);
+        return Colors.indigo;
       case 'lifestyle':
-        return const Color(0xFF607D8B);
+        return Colors.grey;
       case 'preventive care':
-        return const Color(0xFFE91E63);
+        return Colors.red;
       case 'vitamins':
-        return const Color(0xFFFF9800);
+        return Colors.amber;
       case 'weight management':
-        return const Color(0xFF8D6E63);
+        return Colors.brown;
       case 'eating habits':
-        return const Color(0xFF5D4037);
+        return Colors.deepOrange;
       case 'stress management':
-        return const Color(0xFF9C27B0);
+        return Colors.pink;
       case 'exercise':
-        return const Color(0xFFFF5722);
+        return Colors.orange;
       case 'gut health':
-        return const Color(0xFF8BC34A);
+        return Colors.lightGreen;
       case 'workplace health':
-        return const Color(0xFF607D8B);
+        return Colors.grey;
       case 'foot health':
-        return const Color(0xFF795548);
+        return Colors.brown;
       case 'sedentary behavior':
-        return const Color(0xFF9E9E9E);
+        return Colors.grey;
       case 'skin health':
-        return const Color(0xFFFFAB91);
+        return Colors.deepOrange;
       case 'bone health':
-        return const Color(0xFFD7CCC8);
+        return Colors.brown;
       case 'hearing health':
-        return const Color(0xFF90A4AE);
+        return Colors.blueGrey;
       case 'respiratory health':
-        return const Color(0xFF81C784);
+        return Colors.lightGreen;
       case 'heart health':
-        return const Color(0xFFE57373);
+        return Colors.red;
       case 'reproductive health':
-        return const Color(0xFFF8BBD9);
+        return Colors.pink;
       case 'aging':
-        return const Color(0xFFBDBDBD);
+        return Colors.grey;
       case 'environmental health':
-        return const Color(0xFF4CAF50);
+        return Colors.green;
       case 'occupational health':
-        return const Color(0xFF607D8B);
+        return Colors.grey;
       case 'travel health':
-        return const Color(0xFF42A5F5);
+        return Colors.blue;
       case 'seasonal health':
-        return const Color(0xFFFF8A65);
+        return Colors.orange;
       case 'digital health':
-        return const Color(0xFF5C6BC0);
+        return Colors.indigo;
       case 'financial health':
-        return const Color(0xFFFFD54F);
+        return Colors.amber;
       case 'spiritual health':
-        return const Color(0xFF9C27B0);
+        return Colors.purple;
       case 'intellectual health':
-        return const Color(0xFF26A69A);
+        return Colors.teal;
       case 'creative health':
-        return const Color(0xFFEC407A);
+        return Colors.pink;
       case 'community health':
-        return const Color(0xFF66BB6A);
+        return Colors.green;
       case 'global health':
-        return const Color(0xFF26C6DA);
+        return Colors.cyan;
+      case 'quote':
+        return Colors.blue;
+      case 'advice':
+        return Colors.cyan;
+      case 'inspiration':
+        return Colors.purple;
+      case 'wellness':
+        return Colors.green;
+      case 'dental health':
+        return Colors.blue;
+      case 'health':
+      case 'health tip':
+        return Colors.blue;
       default:
-        return const Color(0xFF00ACC1);
+        return Colors.blue;
     }
   }
 
   Future<void> getRandomTip() async {
+    print('🔄 Getting random tip...'); // Debug print
     setState(() {
       isLoading = true;
     });
 
     try {
       final tip = await HealthTipsApi.getRandomTip();
+      print('📡 API returned tip: $tip'); // Debug print
+      
       if (mounted) {
-        setState(() {
-          currentTip = tip;
-          _tipIndex++;
-          isLoading = false;
-        });
-        _animationController.reset();
-        _animationController.forward();
+        // Validate the tip data - check for null, empty, or invalid tip
+        if (tip != null && 
+            tip['tip'] != null && 
+            tip['tip'].toString().isNotEmpty &&
+            tip['tip'].toString().trim().isNotEmpty) {
+          
+          setState(() {
+            currentTip = {
+              'tip': tip['tip'],
+              'category': tip['category'] ?? 'Health',
+              'icon': tip['icon'] ?? '💡',
+              'source': tip['source'] ?? 'Healthy Pathway',
+            };
+            _tipIndex++;
+            isLoading = false;
+          });
+          print('✅ Tip updated successfully: ${currentTip['tip']}'); // Debug print
+          
+        } else {
+          print('⚠️ API returned invalid/empty tip, using fallback'); // Debug print
+          _setFallbackTip();
+        }
       }
     } catch (e) {
+      print('❌ Error loading health tip: $e');
       if (mounted) {
-        setState(() {
-          // Fallback tip if API fails
-          currentTip = {
-            'tip': 'Stay healthy and happy! Remember to drink water, exercise regularly, and get enough sleep.',
-            'category': 'Health',
-            'icon': '💡',
-            'source': 'Healthy Pathway',
-          };
-          isLoading = false;
-        });
-        _animationController.reset();
-        _animationController.forward();
+        _setFallbackTip();
       }
-      print('Error loading tip: $e');
     }
+  }
+
+  void _setFallbackTip() {
+    setState(() {
+      currentTip = {
+        'tip': '💡 Stay healthy and happy! Drink water, exercise, and sleep well.',
+        'category': 'Health',
+        'icon': '💡',
+        'source': 'Healthy Pathway',
+      };
+      isLoading = false;
+    });
+    print('🛡️ Using fallback tip: ${currentTip['tip']}'); // Debug print
   }
 
   Future<void> getTipByCategory(String category) async {
     if (category == 'All') {
-      // Reset category-specific data
       setState(() {
         categoryTips = [];
         currentTipIndex = 0;
@@ -222,20 +266,15 @@ class _HealthTipsScreenState extends State<HealthTipsScreen>
           categoryTips = tips;
           currentTipIndex = 0;
           currentTip = tips[0];
-          selectedCategory = category; // Ensure category is set
+          selectedCategory = category;
           _tipIndex++;
           isLoading = false;
         });
-        _animationController.reset();
-        _animationController.forward();
-        print('Loaded ${tips.length} tips for category: $category'); // Debug print
-        print('Current tip index: $currentTipIndex, Total tips: ${tips.length}'); // Debug print
       } else {
-        // If no tips found for category, get a random tip but keep the category selected
         setState(() {
           categoryTips = [];
           currentTipIndex = 0;
-          selectedCategory = category; // Keep the category selected
+          selectedCategory = category;
         });
         await getRandomTip();
       }
@@ -244,10 +283,8 @@ class _HealthTipsScreenState extends State<HealthTipsScreen>
         isLoading = false;
         categoryTips = [];
         currentTipIndex = 0;
-        selectedCategory = category; // Keep the category selected even on error
+        selectedCategory = category;
       });
-      print('Error loading tip by category: $e');
-      // Fallback to random tip but keep category selected
       await getRandomTip();
     }
   }
@@ -259,20 +296,15 @@ class _HealthTipsScreenState extends State<HealthTipsScreen>
         currentTip = categoryTips[currentTipIndex];
         _tipIndex++;
       });
-      _animationController.reset();
-      _animationController.forward();
-      print('Showing tip ${currentTipIndex + 1} of ${categoryTips.length} for category: $selectedCategory'); // Debug print
     } else if (selectedCategory != 'All' && categoryTips.isEmpty) {
-      // If category is selected but no tips loaded, try to load them
       getTipByCategory(selectedCategory);
     } else {
-      // Only get random tip if "All" is selected
       getRandomTip();
     }
   }
 
   void startAutoChange() {
-    _autoChangeTimer?.cancel(); // Cancel existing timer
+    _autoChangeTimer?.cancel();
     _autoChangeTimer = Timer.periodic(Duration(seconds: 10), (timer) {
       if (mounted) {
         getNextTipInCategory();
@@ -282,20 +314,51 @@ class _HealthTipsScreenState extends State<HealthTipsScreen>
 
   @override
   void dispose() {
-    _animationController.dispose();
-    _pulseController.dispose();
     _autoChangeTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    print('🏗️ HealthTipsScreen build called'); // Debug print
+    print('📋 Categories: $categories'); // Debug print
+    print('💡 Current tip: ${currentTip['tip']}'); // Debug print
+    print('⏳ Is loading: $isLoading'); // Debug print
+    
+    // DETAILED DEBUGGING OF currentTip
+    print('🔍 DETAILED currentTip DEBUG:');
+    print('  - currentTip type: ${currentTip.runtimeType}');
+    print('  - currentTip keys: ${currentTip.keys.toList()}');
+    print('  - currentTip isEmpty: ${currentTip.isEmpty}');
+    print('  - currentTip length: ${currentTip.length}');
+    print('  - tip value: "${currentTip['tip']}"');
+    print('  - tip is null: ${currentTip['tip'] == null}');
+    print('  - tip is empty: ${currentTip['tip']?.toString().isEmpty}');
+    print('  - tip trimmed: "${currentTip['tip']?.toString().trim()}"');
+    
+    // Ensure we have valid data with comprehensive fallback
+    final safeCategories = categories.isNotEmpty ? categories : ['All', 'Health'];
+    final safeTip = currentTip.isNotEmpty && 
+                   currentTip['tip'] != null && 
+                   currentTip['tip'].toString().isNotEmpty &&
+                   currentTip['tip'].toString().trim().isNotEmpty
+                   ? currentTip 
+                   : {
+                       'tip': '💡 Stay healthy and happy! Drink water, exercise, and sleep well.',
+                       'category': 'Health',
+                       'icon': '💡',
+                       'source': 'Healthy Pathway',
+                     };
+    
+    print('🛡️ Safe categories: $safeCategories'); // Debug print
+    print('🛡️ Safe tip: ${safeTip['tip']}'); // Debug print
+    print('🛡️ Safe tip type: ${safeTip.runtimeType}'); // Debug print
+    
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.grey.shade900,
       appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
         title: Text(
           "Daily Health Tips",
           style: TextStyle(
@@ -326,487 +389,289 @@ class _HealthTipsScreenState extends State<HealthTipsScreen>
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1A237E),
-              Color(0xFF0D47A1),
-              Color(0xFF01579B),
-              Color(0xFF006064),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Fixed Category Dropdown Section
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                child: Container(
-                  padding: EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Category Section
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade600,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
                   ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.lightbulb,
-                        color: Colors.amber,
-                        size: 40,
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        'Today\'s Health Tip',
+                ],
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.lightbulb,
+                    color: Colors.yellow,
+                    size: 32,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Today\'s Health Tip',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    selectedCategory == 'All' 
+                        ? 'Random Tips'
+                        : 'Category: $selectedCategory',
+                    style: TextStyle(
+                      color: Colors.yellow,
+                      fontSize: 12,
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  // Category Dropdown
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade800, width: 2),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedCategory,
+                        isExpanded: true,
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          shadows: [
-                            Shadow(
-                              offset: Offset(0, 1),
-                              blurRadius: 2,
-                              color: Colors.black.withOpacity(0.2),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 5),
-                      Text(
-                        selectedCategory == 'All' 
-                            ? 'Random Tips'
-                            : 'Category: $selectedCategory',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.blue.shade800,
                           fontSize: 14,
-                          shadows: [
-                            Shadow(
-                              offset: Offset(0, 1),
-                              blurRadius: 2,
-                              color: Colors.black.withOpacity(0.2),
+                        ),
+                        items: safeCategories.map((String category) {
+                          return DropdownMenuItem<String>(
+                            value: category,
+                            child: Text(category),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          if (newValue != null && newValue != selectedCategory) {
+                            setState(() {
+                              selectedCategory = newValue;
+                            });
+                            _autoChangeTimer?.cancel();
+                            getTipByCategory(newValue);
+                            startAutoChange();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            SizedBox(height: 16),
+            
+            // Health Tip Card
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: _getCategoryColor(safeTip['category']).withOpacity(0.8),
+                  width: 3,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 12,
+                    offset: Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Tip Icon and Category
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _getCategoryColor(safeTip['category']).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          safeTip['icon'] ?? '💡',
+                          style: TextStyle(fontSize: 24),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                            Text(
+                              safeTip['category'] ?? 'Health',
+                              style: TextStyle(
+                                color: _getCategoryColor(safeTip['category']),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    Text(
+                              'Tip #${_tipIndex}',
+                      style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(height: 15),
-                      // Category filter dropdown
+                      // Refresh Button
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: selectedCategory,
-                            dropdownColor: Colors.white.withOpacity(0.9),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                          color: _getCategoryColor(safeTip['category']).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
                             ),
-                            icon: Icon(Icons.arrow_drop_down, color: Colors.white),
-                            items: categories.map((String category) {
-                              return DropdownMenuItem<String>(
-                                value: category,
-                                child: Text(
-                                  category,
-                                  style: TextStyle(
-                                    color: category == 'All' ? Colors.white : Colors.black87,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              if (newValue != null && newValue != selectedCategory) {
-                                print('Selected category: $newValue'); // Debug print
-                                setState(() {
-                                  selectedCategory = newValue;
-                                });
-                                
-                                // Cancel current timer and restart with new category
-                                _autoChangeTimer?.cancel();
-                                getTipByCategory(newValue);
-                                startAutoChange();
-                              }
-                            },
+                          ],
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.refresh,
+                            color: _getCategoryColor(safeTip['category']),
+                            size: 20,
                           ),
+                          onPressed: () {
+                            getNextTipInCategory();
+                          },
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-              
-              // Fixed Tip Card Section
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  child: Container(
+                  
+                  SizedBox(height: 16),
+                  
+                  // Tip Content
+                  Container(
                     width: double.infinity,
+                    padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(25),
+                      color: _getCategoryColor(safeTip['category']).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _getCategoryColor(safeTip['category']).withOpacity(0.4),
+                        width: 2,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                          spreadRadius: 2,
-                        ),
-                        BoxShadow(
-                          color: const Color(0xFF00ACC1).withOpacity(0.1),
-                          blurRadius: 30,
-                          offset: const Offset(0, 15),
-                          spreadRadius: 5,
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
                         ),
                       ],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(25),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.white.withOpacity(0.95),
-                              Colors.white.withOpacity(0.85),
-                              const Color(0xFF00ACC1).withOpacity(0.05),
-                            ],
-                            stops: [0.0, 0.7, 1.0],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          safeTip['tip'] ?? 'Stay healthy and happy!',
+                          style: TextStyle(
+                            fontSize: 16,
+                            height: 1.5,
+                            color: Colors.grey.shade800,
                           ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Header section with enhanced design
-                              Row(
-                                children: [
-                                  // Animated icon container
-                                  Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          _getCategoryColor(currentTip['category'] ?? 'Health'),
-                                          _getCategoryColor(currentTip['category'] ?? 'Health').withOpacity(0.7),
-                                          _getCategoryColor(currentTip['category'] ?? 'Health').withOpacity(0.5),
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(18),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: _getCategoryColor(currentTip['category'] ?? 'Health').withOpacity(0.4),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 6),
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                    child: Text(
-                                      currentTip['icon'] ?? '💡',
-                                      style: const TextStyle(
-                                        fontSize: 32,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 20),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          currentTip['category'] ?? 'Health Tip',
-                                          style: const TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF1A1A1A),
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          selectedCategory == 'All' 
-                                              ? 'Tip ${_tipIndex}'
-                                              : 'Tip ${currentTipIndex + 1} of ${categoryTips.length}',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey[600],
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          selectedCategory == 'All' 
-                                              ? 'Random Tips'
-                                              : 'Category: $selectedCategory',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[500],
-                                            fontWeight: FontWeight.w400,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  // Enhanced refresh button
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          const Color(0xFF00ACC1).withOpacity(0.1),
-                                          const Color(0xFF007C91).withOpacity(0.1),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(20),
-                                        onTap: () {
-                                          getNextTipInCategory();
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(12),
-                                          child: const Icon(
-                                            Icons.refresh,
-                                            color: Color(0xFF00ACC1),
-                                            size: 24,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                        SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.source,
+                              size: 16,
+                              color: Colors.grey.shade600,
+                            ),
+                            SizedBox(width: 4),
+                    Text(
+                              'Source: ${safeTip['source'] ?? 'Healthy Pathway'}',
+                      style: TextStyle(
+                        fontSize: 12,
+                                color: Colors.grey.shade600,
                               ),
-                              
-                              const SizedBox(height: 20),
-                              
-                              // Enhanced tip content
-                              Expanded(
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        const Color(0xFF00ACC1).withOpacity(0.08),
-                                        const Color(0xFF007C91).withOpacity(0.05),
-                                        Colors.white.withOpacity(0.3),
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF00ACC1).withOpacity(0.1),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: isLoading
-                                      ? Center(
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              CircularProgressIndicator(
-                                                valueColor: AlwaysStoppedAnimation<Color>(
-                                                  const Color(0xFF00ACC1),
-                                                ),
-                                              ),
-                                              SizedBox(height: 16),
-                                              Text(
-                                                'Loading health tip...',
-                                                style: TextStyle(
-                                                  color: const Color(0xFF004D61),
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      : Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                                  decoration: BoxDecoration(
-                                                    gradient: LinearGradient(
-                                                      colors: [
-                                                        const Color(0xFF00ACC1).withOpacity(0.2),
-                                                        const Color(0xFF007C91).withOpacity(0.2),
-                                                      ],
-                                                    ),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: Text(
-                                                    '💡 Daily Wisdom',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight: FontWeight.w600,
-                                                      color: const Color(0xFF1A1A1A),
-                                                      letterSpacing: 0.5,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const Spacer(),
-                                                Icon(
-                                                  Icons.favorite,
-                                                  color: const Color(0xFF00ACC1).withOpacity(0.6),
-                                                  size: 20,
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 12),
-                                            Expanded(
-                                              child: SingleChildScrollView(
-                                                child: Text(
-                                                  currentTip['tip'] ?? 'Stay healthy and happy! Remember to drink water, exercise regularly, and get enough sleep.',
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    color: Color(0xFF1A1A1A),
-                                                    height: 1.6,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                ),
-                              ),
-                              
-                              const SizedBox(height: 16),
-                              
-                              // Enhanced footer with progress indicator
-                              Row(
-                                children: [
-                                  // Progress dots
-                                  Row(
-                                    children: selectedCategory == 'All'
-                                        ? List.generate(5, (index) => Container(
-                                            width: 6,
-                                            height: 6,
-                                            margin: const EdgeInsets.only(right: 4),
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: index == 0 
-                                                  ? const Color(0xFF00ACC1)
-                                                  : const Color(0xFF00ACC1).withOpacity(0.3),
-                                            ),
-                                          ))
-                                        : List.generate(
-                                            categoryTips.length > 5 ? 5 : categoryTips.length,
-                                            (index) => Container(
-                                              width: 6,
-                                              height: 6,
-                                              margin: const EdgeInsets.only(right: 4),
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: index == currentTipIndex % (categoryTips.length > 5 ? 5 : categoryTips.length)
-                                                    ? const Color(0xFF00ACC1)
-                                                    : const Color(0xFF00ACC1).withOpacity(0.3),
-                                              ),
-                                            ),
-                                          ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.schedule,
-                                          size: 14,
-                                          color: Colors.grey[600],
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          'Auto-refresh every 10s',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  // Share button
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          const Color(0xFF00ACC1).withOpacity(0.2),
-                                          const Color(0xFF007C91).withOpacity(0.2),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(12),
-                                        onTap: () {
-                                          Share.share(
-                                            '💡 Health Tip: ${currentTip['tip']}\n\nFrom Healthy Pathway App',
-                                            subject: 'Daily Health Tip',
-                                          );
-                                        },
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.share,
-                                              size: 14,
-                                              color: const Color(0xFF004D61),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              'Share',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: const Color(0xFF004D61),
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  SizedBox(height: 16),
+                  
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Share.share(
+                              '${safeTip['tip']}\n\nSource: ${safeTip['source']}\nShared from Healthy Pathway App',
+                              subject: 'Health Tip: ${safeTip['category']}',
+                            );
+                          },
+                          icon: Icon(Icons.share, size: 18),
+                          label: Text('Share'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _getCategoryColor(safeTip['category']),
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            getNextTipInCategory();
+                          },
+                          icon: Icon(Icons.skip_next, size: 18),
+                          label: Text('Next Tip'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey.shade200,
+                            foregroundColor: Colors.grey.shade800,
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
                     ),
-                  ),
+                  ],
                 ),
+                ],
               ),
-            ],
-          ),
+            ),
+            
+            SizedBox(height: 100), // Bottom padding for home button
+          ],
         ),
       ),
-      // Home button
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         child: Center(
           child: RoundHomeButton(),
         ),
