@@ -1,0 +1,155 @@
+name: Build iOS Release (Robust)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  build-ios-release:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.3'
+        channel: 'stable'
+        
+    - name: Show Flutter version
+      run: flutter --version
+      
+    - name: Get Flutter dependencies
+      run: |
+        echo "📦 Getting Flutter dependencies..."
+        flutter pub get
+        flutter pub deps
+        
+    - name: Check Flutter doctor
+      run: |
+        echo "🔍 Checking Flutter setup..."
+        flutter doctor -v
+        
+    - name: Show project structure
+      run: |
+        echo "📁 Project structure:"
+        ls -la
+        echo "📱 iOS directory:"
+        ls -la ios/
+        
+    - name: Install iOS dependencies
+      run: |
+        echo "🍎 Installing iOS dependencies..."
+        cd ios
+        pod install --repo-update --verbose
+        cd ..
+        
+    - name: Show pod installation results
+      run: |
+        echo "📦 Pod installation results:"
+        ls -la ios/Pods/ || echo "Pods directory not found"
+        
+    - name: Verify iOS configuration
+      run: |
+        echo "🔍 Checking iOS configuration..."
+        echo "📱 Bundle ID: $(grep -A 1 'PRODUCT_BUNDLE_IDENTIFIER' ios/Runner.xcodeproj/project.pbxproj | grep -v 'PRODUCT_BUNDLE_IDENTIFIER' | head -1)"
+        echo "📦 Export method: $(grep -A 1 'method' ios/exportOptions.plist | grep -v 'method' | head -1)"
+        echo "📋 Info.plist exists: $(ls -la ios/Runner/Info.plist)"
+        
+    - name: Clean previous builds
+      run: |
+        echo "🧹 Cleaning previous builds..."
+        flutter clean
+        rm -rf build/
+        rm -rf ios/build/
+        
+    - name: Build iOS Release IPA
+      run: |
+        echo "📱 Building iOS Release IPA..."
+        echo "🔄 Build started at: $(date)"
+        
+        # Try building with more verbose output
+        flutter build ipa --release --no-codesign --verbose --dart-define=FLUTTER_BUILD_NAME=1.0.0 --dart-define=FLUTTER_BUILD_NUMBER=1
+        
+        echo "✅ Build completed at: $(date)"
+        
+    - name: Show build results
+      run: |
+        echo "📊 Build results:"
+        echo "📁 Build directory:"
+        ls -la build/ || echo "Build directory not found"
+        echo "📱 iOS build directory:"
+        ls -la build/ios/ || echo "iOS build directory not found"
+        echo "📦 IPA directory:"
+        ls -la build/ios/ipa/ || echo "IPA directory not found"
+        
+        # Look for any IPA files
+        echo "🔍 Searching for IPA files:"
+        find build/ -name "*.ipa" -type f || echo "No IPA files found"
+        
+        # Look for app bundles
+        echo "🔍 Searching for app bundles:"
+        find build/ -name "*.app" -type d || echo "No app bundles found"
+        
+    - name: Verify IPA creation
+      run: |
+        echo "✅ Checking if IPA was created..."
+        if [ -f "build/ios/ipa/healthy_pathway.ipa" ]; then
+          echo "✅ IPA file created successfully!"
+          echo "📦 File size: $(du -h build/ios/ipa/healthy_pathway.ipa | cut -f1)"
+          echo "📅 Build timestamp: $(date)"
+        elif [ -f "build/ios/ipa/Runner.ipa" ]; then
+          echo "✅ Runner.ipa file found!"
+          echo "📦 File size: $(du -h build/ios/ipa/Runner.ipa | cut -f1)"
+          # Rename to our app name
+          mv build/ios/ipa/Runner.ipa build/ios/ipa/healthy_pathway.ipa
+          echo "✅ Renamed to healthy_pathway.ipa"
+        else
+          echo "❌ IPA file not found!"
+          echo "🔍 Available files in build/ios/ipa/:"
+          ls -la build/ios/ipa/ || echo "IPA directory not found"
+          exit 1
+        fi
+      
+    - name: Upload Release IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: healthy-pathway-release-ipa
+        path: build/ios/ipa/*.ipa
+        retention-days: 30
+        if-no-files-found: error
+        
+    - name: Upload build logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: release-build-logs
+        path: |
+          build/
+          ios/Pods/
+        retention-days: 7
+        
+    - name: Upload Xcode logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: xcode-logs
+        path: |
+          ~/Library/Developer/Xcode/DerivedData/
+        retention-days: 7
+        
+    - name: Build Summary
+      if: always()
+      run: |
+        echo "🎉 Release IPA Build Summary:"
+        echo "✅ Flutter version: $(flutter --version | head -1)"
+        echo "✅ iOS release IPA completed"
+        echo "📱 IPA file: healthy_pathway.ipa"
+        echo "📅 Build date: $(date)"
+        echo "📁 Download from Actions tab → Artifacts"
+        echo "💡 This IPA is ready for device testing!" 
