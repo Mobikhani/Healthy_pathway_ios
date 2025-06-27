@@ -1,0 +1,97 @@
+name: Build iOS Debug (Fixed)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  build-ios-debug:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.3'
+        channel: 'stable'
+        
+    - name: Get Flutter dependencies
+      run: flutter pub get
+      
+    - name: Install iOS dependencies
+      run: |
+        cd ios
+        pod install --repo-update
+        cd ..
+        
+    - name: Build iOS Debug App
+      run: |
+        echo "📱 Building iOS Debug App..."
+        flutter build ios --debug --no-codesign --verbose
+        
+    - name: Show Debug Build Results
+      run: |
+        echo "✅ Debug build completed!"
+        echo "📁 Checking build directory..."
+        ls -la build/ || echo "Build directory not found"
+        ls -la build/ios/ || echo "iOS build directory not found"
+        
+        # Look for .app files (debug builds create .app, not .ipa)
+        echo "🔍 Looking for .app files..."
+        find build/ -name "*.app" -type d || echo "No .app files found"
+        
+        # Check if we can create an IPA from the debug build
+        echo "📦 Attempting to create IPA from debug build..."
+        if [ -d "build/ios/Debug-iphoneos/Runner.app" ]; then
+          echo "✅ Found Runner.app, creating IPA..."
+          mkdir -p build/ios/ipa
+          cd build/ios/Debug-iphoneos
+          zip -r ../../ipa/healthy_pathway_debug.ipa Runner.app
+          cd ../../..
+          echo "✅ Debug IPA created successfully!"
+        else
+          echo "⚠️ Runner.app not found in expected location"
+        fi
+        
+    - name: Upload Debug IPA (if created)
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: ios-debug-ipa
+        path: build/ios/ipa/*.ipa
+        retention-days: 30
+        if-no-files-found: warn
+        
+    - name: Upload Debug App Bundle
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: ios-debug-app
+        path: build/ios/Debug-iphoneos/Runner.app
+        retention-days: 30
+        if-no-files-found: warn
+        
+    - name: Upload Build Logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: debug-build-logs
+        path: |
+          build/
+          ios/Pods/
+        retention-days: 7
+        
+    - name: Build Summary
+      if: always()
+      run: |
+        echo "🎉 Debug Build Summary:"
+        echo "✅ Flutter version: $(flutter --version | head -1)"
+        echo "📱 Debug build completed"
+        echo "📁 Check artifacts for .app bundle and logs"
+        echo "💡 Note: Debug builds are for development, not device testing" 

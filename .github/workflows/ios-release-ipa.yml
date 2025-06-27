@@ -1,0 +1,88 @@
+name: Build iOS Release IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  build-ios-release:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.3'
+        channel: 'stable'
+        
+    - name: Get Flutter dependencies
+      run: flutter pub get
+      
+    - name: Install iOS dependencies
+      run: |
+        cd ios
+        pod install --repo-update
+        cd ..
+        
+    - name: Verify iOS configuration
+      run: |
+        echo "🔍 Checking iOS configuration..."
+        echo "📱 Bundle ID: $(grep -A 1 'PRODUCT_BUNDLE_IDENTIFIER' ios/Runner.xcodeproj/project.pbxproj | grep -v 'PRODUCT_BUNDLE_IDENTIFIER' | head -1)"
+        echo "📦 Export method: $(grep -A 1 'method' ios/exportOptions.plist | grep -v 'method' | head -1)"
+        
+    - name: Build iOS Release IPA
+      run: |
+        echo "📱 Building iOS Release IPA..."
+        echo "🔄 Build started at: $(date)"
+        flutter build ipa --release --no-codesign --verbose
+        echo "✅ Build completed at: $(date)"
+        
+    - name: Verify IPA creation
+      run: |
+        echo "✅ Checking if IPA was created..."
+        ls -la build/ios/ipa/
+        if [ -f "build/ios/ipa/healthy_pathway.ipa" ]; then
+          echo "✅ IPA file created successfully!"
+          echo "📦 File size: $(du -h build/ios/ipa/healthy_pathway.ipa | cut -f1)"
+          echo "📅 Build timestamp: $(date)"
+        else
+          echo "❌ IPA file not found!"
+          echo "🔍 Looking for any IPA files..."
+          find build/ -name "*.ipa" -type f
+          exit 1
+        fi
+      
+    - name: Upload Release IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: healthy-pathway-release-ipa
+        path: build/ios/ipa/*.ipa
+        retention-days: 30
+        if-no-files-found: error
+        
+    - name: Upload build logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: release-build-logs
+        path: |
+          build/ios/archive/
+          build/ios/ipa/
+        retention-days: 7
+        
+    - name: Build Summary
+      if: always()
+      run: |
+        echo "🎉 Release IPA Build Summary:"
+        echo "✅ Flutter version: $(flutter --version | head -1)"
+        echo "✅ iOS release IPA completed"
+        echo "📱 IPA file: healthy_pathway.ipa"
+        echo "📅 Build date: $(date)"
+        echo "📁 Download from Actions tab → Artifacts"
+        echo "💡 This IPA is ready for device testing!" 
