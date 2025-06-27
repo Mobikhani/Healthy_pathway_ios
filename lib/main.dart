@@ -3,17 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:healthy_pathway/home/medication_reminder/notification_service.dart';
 import 'package:healthy_pathway/splash_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:healthy_pathway/auth/login_screen.dart';
+import 'package:healthy_pathway/home/home_screen.dart';
 
 import 'firebase_options.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
-
-
-void main() async{
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.init();
-  await requestNotificationPermission(); // or your actual local zone
+  await requestNotificationPermission();
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -28,21 +29,43 @@ Future<void> requestNotificationPermission() async {
   }
 }
 
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'Healthy Pathway',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home:SplashScreen(),
+      home: const AuthWrapper(),
+    );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SplashScreen();
+        }
+        
+        if (snapshot.hasData && snapshot.data != null) {
+          // User is logged in
+          return const HomeScreen();
+        } else {
+          // User is not logged in
+          return const LoginScreen();
+        }
+      },
     );
   }
 }

@@ -140,7 +140,7 @@ class _EnhancedHomeScreenState extends State<EnhancedHomeScreen> {
     super.initState();
     fetchUserDetails();
     getRandomHealthTip();
-    _tipTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    _tipTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       getRandomHealthTip();
     });
   }
@@ -152,36 +152,78 @@ class _EnhancedHomeScreenState extends State<EnhancedHomeScreen> {
   }
 
   Future<void> fetchUserDetails() async {
-    if (currentUser != null) {
-      DatabaseReference userRef = FirebaseDatabase.instance
-          .ref()
-          .child('Users')
-          .child(currentUser!.uid);
+    try {
+      if (currentUser != null) {
+        DatabaseReference userRef = FirebaseDatabase.instance
+            .ref()
+            .child('Users')
+            .child(currentUser!.uid);
 
-      final snapshot = await userRef.get();
-      if (snapshot.exists) {
-        setState(() {
-          userName = snapshot.child('name').value.toString();
-          userEmail = snapshot.child('email').value.toString();
-        });
+        final snapshot = await userRef.get();
+        if (snapshot.exists) {
+          final data = snapshot.value;
+          
+          // Safe type checking and conversion
+          if (data is Map<dynamic, dynamic>) {
+            final userData = Map<String, dynamic>.from(data);
+            setState(() {
+              userName = userData['name']?.toString() ?? 'User';
+              userEmail = userData['email']?.toString() ?? '';
+            });
+          } else {
+            // Fallback if data structure is unexpected
+            setState(() {
+              userName = 'User';
+              userEmail = currentUser!.email ?? '';
+            });
+          }
+        } else {
+          // User data doesn't exist, use Firebase user info
+          setState(() {
+            userName = 'User';
+            userEmail = currentUser!.email ?? '';
+          });
+        }
       }
+    } catch (e) {
+      print('Error fetching user details: $e');
+      // Fallback to Firebase user info
+      setState(() {
+        userName = currentUser?.displayName ?? 'User';
+        userEmail = currentUser?.email ?? '';
+      });
     }
   }
 
   void getRandomHealthTip() {
-    final random = Random();
-    final index = random.nextInt(healthTips.length);
-    setState(() {
-      currentHealthTip = healthTips[index];
-    });
+    if (mounted) {
+      final random = Random();
+      final index = random.nextInt(healthTips.length);
+      setState(() {
+        currentHealthTip = healthTips[index];
+      });
+    }
   }
 
   void logout() async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    try {
+      await FirebaseAuth.instance.signOut();
+      // Auth state listener will automatically navigate to LoginScreen
+      // No need for manual navigation here
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Logged out successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error logging out: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override

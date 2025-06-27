@@ -27,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String userEmail = "";
   String currentHealthTip = "";
   Timer? _tipTimer;
+  String selectedCategory = "All";
 
   final User? currentUser = FirebaseAuth.instance.currentUser;
 
@@ -101,8 +102,8 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     fetchUserDetails();
     getRandomHealthTip();
-    // Start automatic tip cycling every 10 seconds
-    _tipTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    // Start automatic tip cycling every 30 seconds
+    _tipTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       getRandomHealthTip();
     });
   }
@@ -114,42 +115,86 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> fetchUserDetails() async {
-    if (currentUser != null) {
-      DatabaseReference userRef = FirebaseDatabase.instance
-          .ref()
-          .child('Users')
-          .child(currentUser!.uid);
+    try {
+      if (currentUser != null) {
+        DatabaseReference userRef = FirebaseDatabase.instance
+            .ref()
+            .child('Users')
+            .child(currentUser!.uid);
 
-      final snapshot = await userRef.get();
-      if (snapshot.exists) {
-        setState(() {
-          userName = snapshot.child('name').value.toString();
-          userEmail = snapshot.child('email').value.toString();
-        });
+        final snapshot = await userRef.get();
+        if (snapshot.exists) {
+          final data = snapshot.value;
+          
+          // Safe type checking and conversion
+          if (data is Map<dynamic, dynamic>) {
+            final userData = Map<String, dynamic>.from(data);
+            setState(() {
+              userName = userData['name']?.toString() ?? 'User';
+              userEmail = userData['email']?.toString() ?? '';
+            });
+          } else {
+            // Fallback if data structure is unexpected
+            setState(() {
+              userName = 'User';
+              userEmail = currentUser!.email ?? '';
+            });
+          }
+        } else {
+          // User data doesn't exist, use Firebase user info
+          setState(() {
+            userName = 'User';
+            userEmail = currentUser!.email ?? '';
+          });
+        }
       }
+    } catch (e) {
+      print('Error fetching user details: $e');
+      // Fallback to Firebase user info
+      setState(() {
+        userName = currentUser?.displayName ?? 'User';
+        userEmail = currentUser?.email ?? '';
+      });
     }
   }
 
   Future<void> getRandomHealthTip() async {
     try {
       final tip = await HealthTipsApi.getRandomTip();
-      setState(() {
-        currentHealthTip = tip['tip'] ?? 'Stay healthy and happy!';
-      });
+      if (mounted) {
+        setState(() {
+          currentHealthTip = tip['tip'] ?? 'Stay healthy and happy!';
+        });
+      }
     } catch (e) {
-      setState(() {
-        currentHealthTip = 'Stay healthy and happy!';
-      });
+      if (mounted) {
+        setState(() {
+          currentHealthTip = 'Stay healthy and happy!';
+        });
+      }
       print('Error loading health tip: $e');
     }
   }
 
   void logout() async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    try {
+      await FirebaseAuth.instance.signOut();
+      // Auth state listener will automatically navigate to LoginScreen
+      // No need for manual navigation here
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Logged out successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error logging out: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -160,6 +205,14 @@ class _HomeScreenState extends State<HomeScreen> {
         .toLowerCase()
         .contains(searchQuery.toLowerCase()))
         .toList();
+
+    // Get all unique categories from all features (not just filtered)
+    final allCategories = <String>{};
+    for (var feature in allFeatures) {
+      final category = feature['category'] ?? 'Others';
+      allCategories.add(category);
+    }
+    final categoryList = ['All', ...allCategories.toList()..sort()];
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -220,6 +273,66 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+              
+              const SizedBox(height: 16),
+              
+              // Fixed Category Tab Bar - Show all categories
+              Container(
+                height: 50,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: categoryList.length,
+                  itemBuilder: (context, index) {
+                    final category = categoryList[index];
+                    final isSelected = selectedCategory == category;
+                    return Container(
+                      margin: const EdgeInsets.only(right: 12),
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedCategory = category;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected 
+                                ? Colors.white.withOpacity(0.3)
+                                : Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(25),
+                            border: isSelected 
+                                ? Border.all(color: Colors.white, width: 2)
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                getCategoryIcon(category),
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                category,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Scrollable Content Area
               Expanded(
                 child: ListView(
                   children: [
@@ -339,52 +452,105 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Widget> buildFeatureSections(List<Map<String, dynamic>> features) {
-    final categories = <String>{};
     final Map<String, List<Map<String, dynamic>>> grouped = {};
 
+    // Group features by category
     for (var feature in features) {
       final category = feature['category'] ?? 'Others';
-      categories.add(category);
       grouped.putIfAbsent(category, () => []).add(feature);
     }
 
-    return categories.map((category) {
-      final items = grouped[category]!;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  getCategoryIcon(category),
-                  color: Colors.white,
-                  size: 20,
+    // Build sections based on selected category
+    List<Widget> sections = [];
+    
+    if (selectedCategory == 'All') {
+      // Show all categories with their headers
+      grouped.forEach((category, items) {
+        sections.add(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Category Header
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  category,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      getCategoryIcon(category),
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      category,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              // Feature Cards
+              ...items.map((feature) => buildFeatureCard(feature)).toList(),
+              const SizedBox(height: 24),
+            ],
           ),
-          const SizedBox(height: 12),
-          ...items.map((feature) => buildFeatureCard(feature)).toList(),
-          const SizedBox(height: 24),
-        ],
-      );
-    }).toList();
+        );
+      });
+    } else {
+      // Show only the selected category
+      if (grouped.containsKey(selectedCategory)) {
+        final items = grouped[selectedCategory]!;
+        sections.add(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Category Header
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      getCategoryIcon(selectedCategory),
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      selectedCategory,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Feature Cards
+              ...items.map((feature) => buildFeatureCard(feature)).toList(),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      }
+    }
+
+    return sections;
   }
 
   Widget buildFeatureCard(Map<String, dynamic> feature) {
@@ -779,7 +945,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'Auto-refresh every 10s',
+                                'Auto-refresh every 30s',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
