@@ -1,0 +1,100 @@
+name: iOS Diagnostic Build
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+jobs:
+  diagnose-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.6'
+        channel: 'stable'
+        
+    - name: Show system info
+      run: |
+        echo "=== System Information ==="
+        uname -a
+        echo "=== Available Flutter versions ==="
+        flutter --version
+        echo "=== Flutter doctor ==="
+        flutter doctor -v
+        
+    - name: Show project structure
+      run: |
+        echo "=== Project Structure ==="
+        ls -la
+        echo "=== iOS Directory ==="
+        ls -la ios/
+        echo "=== iOS Runner Directory ==="
+        ls -la ios/Runner/
+        
+    - name: Check pubspec.yaml
+      run: |
+        echo "=== Pubspec.yaml ==="
+        cat pubspec.yaml
+        
+    - name: Get dependencies
+      run: |
+        echo "=== Getting Dependencies ==="
+        flutter pub get
+        echo "=== Dependencies installed ==="
+        
+    - name: Check iOS configuration
+      run: |
+        echo "=== iOS Configuration ==="
+        echo "Bundle ID:"
+        grep -A 1 'PRODUCT_BUNDLE_IDENTIFIER' ios/Runner.xcodeproj/project.pbxproj | grep -v 'PRODUCT_BUNDLE_IDENTIFIER' | head -1
+        echo "Export method:"
+        grep -A 1 'method' ios/exportOptions.plist | grep -v 'method' | head -1
+        echo "Info.plist:"
+        ls -la ios/Runner/Info.plist
+        
+    - name: Check CocoaPods
+      run: |
+        echo "=== CocoaPods Check ==="
+        cd ios
+        pod --version
+        echo "=== Podfile ==="
+        cat Podfile
+        echo "=== Installing Pods ==="
+        pod install --verbose
+        cd ..
+        
+    - name: Show build environment
+      run: |
+        echo "=== Build Environment ==="
+        echo "Xcode version:"
+        xcodebuild -version
+        echo "Available simulators:"
+        xcrun simctl list devices
+        echo "Available SDKs:"
+        xcodebuild -showsdks
+        
+    - name: Try simple build
+      run: |
+        echo "=== Trying Simple Build ==="
+        flutter build ios --debug --no-codesign --verbose || echo "Debug build failed"
+        
+    - name: Show build results
+      run: |
+        echo "=== Build Results ==="
+        ls -la build/ || echo "No build directory"
+        ls -la build/ios/ || echo "No iOS build directory"
+        find build/ -name "*.app" -type d || echo "No app bundles found"
+        
+    - name: Upload diagnostic logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: diagnostic-logs
+        path: |
+          build/
+          ios/Pods/
+        retention-days: 7 
