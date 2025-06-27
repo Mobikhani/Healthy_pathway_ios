@@ -12,7 +12,7 @@ import 'health_tips/health_tips.dart';
 import 'myth_checker/myth_home.dart';
 import 'nutration_guide/calories_tracker.dart';
 import 'overview_and_prevention/disease_overview_prevention.dart';
-import '../services/health_tips_api.dart';
+import '../services/unlimited_health_tips_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -86,15 +86,6 @@ class _HomeScreenState extends State<HomeScreen> {
       'screen': const MythHomeScreen(),
       'color': Color(0xFF607D8B),
     },
-    {
-      'icon': Icons.tips_and_updates,
-      'image': 'assets/images/icons/icon_tips.png',
-      'title': 'Daily Health Tips',
-      'description': 'Boost your day with a health tip',
-      'category': 'Health Education',
-      'screen': const HealthTipsScreen(),
-      'color': Color(0xFF00BCD4),
-    },
   ];
 
   @override
@@ -160,10 +151,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> getRandomHealthTip() async {
     try {
-      final tip = await HealthTipsApi.getRandomTip();
+      final tip = await UnlimitedHealthTipsService.generateHealthTip(selectedCategory);
       if (mounted) {
         setState(() {
-          currentHealthTip = tip['tip'] ?? 'Stay healthy and happy!';
+          currentHealthTip = tip;
         });
       }
     } catch (e) {
@@ -329,9 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
               ),
-              
-              const SizedBox(height: 16),
-              
+              const SizedBox(height: 4),
               // Scrollable Content Area
               Expanded(
                 child: ListView(
