@@ -31,60 +31,21 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         User? user = userCredential.user;
-        if (user != null) {
-          // Verify user exists in database
-          DatabaseReference userRef = FirebaseDatabase.instance
-              .ref()
-              .child('Users')
-              .child(user.uid);
-          DataSnapshot snapshot = await userRef.get();
-
-          if (snapshot.exists) {
-            // Verify the data structure is correct
-            final data = snapshot.value;
-            if (data is Map<dynamic, dynamic>) {
-              final userData = Map<String, dynamic>.from(data);
-              if (userData['name'] != null && userData['email'] != null) {
-                // Auth state listener will automatically navigate to HomeScreen
-                // No need for manual navigation here
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Login successful!"),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } else {
-                // User data is incomplete, sign them out
-                await FirebaseAuth.instance.signOut();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("User data is incomplete. Please contact support."),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            } else {
-              // User data structure is unexpected, sign them out
-              await FirebaseAuth.instance.signOut();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("User data structure is invalid. Please contact support."),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          } else {
-            // User doesn't exist in database, sign them out
-            await FirebaseAuth.instance.signOut();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("User data not found. Please sign up first."),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+        if (user != null && mounted) {
+          // Login successful - auth state listener will handle navigation
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Login successful!"),
+              backgroundColor: Colors.green,
+            ),
+          );
+          
+          // The auth state listener will automatically navigate to HomeScreen
+          // No need for manual navigation here
         }
       } on FirebaseAuthException catch (e) {
+        if (!mounted) return;
+        
         String errorMessage = 'Login failed';
         if (e.code == 'user-not-found') {
           errorMessage = 'No user found with this email.';
@@ -106,6 +67,8 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       } catch (e) {
         print('Login error: $e');
+        if (!mounted) return;
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('An unexpected error occurred: ${e.toString()}'),
@@ -113,7 +76,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       } finally {
-        setState(() => isLoading = false);
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
       }
     }
   }
@@ -145,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const SizedBox(height: 20),
                     Image.asset(
-                      'assets/logo.png',
+                      'assets/Icon-1024.png',
                       height: 220,
                       color: Colors.white,
                     ),

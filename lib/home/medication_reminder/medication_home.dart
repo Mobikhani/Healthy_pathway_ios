@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'add_medicine.dart';
+import 'notification_service.dart';
 import '../../widgets/round_home_button.dart';
 
 class MedicationHome extends StatefulWidget {
@@ -50,6 +51,7 @@ class _MedicationHomeState extends State<MedicationHome> {
       }
     });
   }
+  
   void _deleteMedicine(String key) async {
     if (_medRef != null) {
       await _medRef!.child(key).remove();
@@ -59,110 +61,286 @@ class _MedicationHomeState extends State<MedicationHome> {
     }
   }
 
+  void _testNotification() async {
+    try {
+      await NotificationService.showTestNotification();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Test notification sent!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending test notification: $e')),
+      );
+    }
+  }
 
-  void _showAddMedicineSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => const AddMedicineForm(),
-    );
+  void _scheduleTestNotification() async {
+    try {
+      await NotificationService.scheduleTestNotification();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Test notification scheduled for 10 seconds from now!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error scheduling test notification: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _scheduleTestMedicineNotification() async {
+    try {
+      await NotificationService.scheduleTestMedicineNotification();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Test medicine notification scheduled for 2 minutes from now!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error scheduling test medicine notification: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showMedicineNotificationNow() async {
+    try {
+      await NotificationService.showMedicineNotificationNow('Test Medicine');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Medicine notification shown immediately!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error showing medicine notification: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showPendingNotifications() async {
+    try {
+      final pendingNotifications = await NotificationService.getPendingNotifications();
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Pending Notifications'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: pendingNotifications.length,
+              itemBuilder: (context, index) {
+                final notification = pendingNotifications[index];
+                return ListTile(
+                  title: Text('ID: ${notification.id}'),
+                  subtitle: Text(notification.title ?? 'No title'),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error getting pending notifications: $e')),
+      );
+    }
+  }
+
+  void _cancelAllNotifications() async {
+    try {
+      await NotificationService.cancelAllNotifications();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All notifications cancelled!'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error cancelling notifications: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _checkPermissions() async {
+    try {
+      final permissions = await NotificationService.checkPermissions();
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Notification Permissions'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Notification Permission: ${permissions['notification'] == true ? 'Granted' : 'Denied'}'),
+              const SizedBox(height: 8),
+              Text('Alarm Permission: ${permissions['alarm'] == true ? 'Granted' : 'Denied'}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await NotificationService.requestPermissions();
+                Navigator.pop(context);
+                _checkPermissions();
+              },
+              child: const Text('Request Permissions'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error checking permissions: $e')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        iconTheme: IconThemeData(
-          color: Colors.white
-        ),
-        title: const Text('My Medicines',style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold
-        ),),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
+        title: const Text('Medicine Reminders'),
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: _checkPermissions,
+            tooltip: 'Check Permissions',
+          ),
+        ],
       ),
-      body: Stack(
+      body: Column(
         children: [
+          // Test buttons section
           Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFFB2EBF2), // Soft cyan
-                  Color(0xFF00ACC1), // Calming teal
-                  Color(0xFF007C91), // Deep teal
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: SafeArea(
-              child: _medicines.isEmpty
-                  ? const Center(
-                child: Text(
-                  'No medicines added yet.',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                  ),
+            margin: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Notification Tests',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              )
-                  : ListView.builder(
-                itemCount: _medicines.length,
-                padding: const EdgeInsets.all(16),
-                itemBuilder: (context, index) {
-                  final med = _medicines[index];
-                  return Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ElevatedButton(
+                      onPressed: _testNotification,
+                      child: const Text('Test Now'),
                     ),
-                    elevation: 4,
-                    margin: const EdgeInsets.symmetric(vertical: 10),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      leading: const Icon(Icons.medication, size: 40, color: Color(0xFF00ACC1)),
-                      title: Text(
-                        med['name'],
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF007C91),
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 6),
-                          Text("Quantity: ${med['quantity']}"),
-                          Text("Days: ${med['days'].join(', ')}"),
-                          Text("Time: ${med['time'] ?? 'Not set'}"),
-                        ],
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          _deleteMedicine(med['key']);
-                        },
-                      ),
+                    ElevatedButton(
+                      onPressed: _showMedicineNotificationNow,
+                      child: const Text('Medicine Now'),
                     ),
-
-                  );
-                },
-              ),
+                    ElevatedButton(
+                      onPressed: _scheduleTestNotification,
+                      child: const Text('Test 10s'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _scheduleTestMedicineNotification,
+                      child: const Text('Test 2min'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _showPendingNotifications,
+                      child: const Text('View Pending'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _cancelAllNotifications,
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      child: const Text('Cancel All', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          const RoundHomeButton(),
+          
+          // Medicines list
+          Expanded(
+            child: _medicines.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No medicines added yet.\nTap the + button to add your first medicine.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _medicines.length,
+                    itemBuilder: (context, index) {
+                      final medicine = _medicines[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: ListTile(
+                          leading: const Icon(Icons.medication, color: Colors.blue),
+                          title: Text(medicine['name'] ?? 'Unknown'),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Quantity: ${medicine['quantity'] ?? 'N/A'}'),
+                              Text('Time: ${medicine['time'] ?? 'N/A'}'),
+                              Text('Days: ${(medicine['days'] as List<dynamic>?)?.join(', ') ?? 'N/A'}'),
+                            ],
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _deleteMedicine(medicine['key']),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddMedicineSheet,
-        backgroundColor: const Color(0xFF00ACC1),
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) => const AddMedicineForm(),
+          );
+        },
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
     );

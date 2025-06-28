@@ -40,35 +40,58 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
         _selectedTime != null) {
       if (_currentUser == null) return;
 
-      final medicine = {
-        'name': _nameController.text.trim(),
-        'quantity': _quantityController.text.trim(),
-        'days': _selectedDays,
-        'time': _selectedTime!.format(context),
-      };
+      try {
+        final medicine = {
+          'name': _nameController.text.trim(),
+          'quantity': _quantityController.text.trim(),
+          'days': _selectedDays,
+          'time': _selectedTime!.format(context),
+        };
 
-      final ref = FirebaseDatabase.instance
-          .ref()
-          .child('Users')
-          .child(_currentUser!.uid)
-          .child('medicines');
-      await NotificationService.scheduleMedicineNotification(
-        id: '${_nameController.text.trim()}-${_selectedTime.toString()}'.hashCode & 0x7FFFFFFF,
-        title: 'Time to take ${_nameController.text.trim()}',
-        body: 'Don\'t forget to take your medicine!',
-        time: _selectedTime!,
-        days: _selectedDays,
-      );
+        final ref = FirebaseDatabase.instance
+            .ref()
+            .child('Users')
+            .child(_currentUser!.uid)
+            .child('medicines');
 
+        // Schedule notifications first
+        print('Scheduling notifications for medicine: ${_nameController.text.trim()}');
+        await NotificationService.scheduleMedicineNotification(
+          id: '${_nameController.text.trim()}-${_selectedTime.toString()}'.hashCode & 0x7FFFFFFF,
+          title: 'Time to take ${_nameController.text.trim()}',
+          body: 'Don\'t forget to take your medicine!',
+          time: _selectedTime!,
+          days: _selectedDays,
+        );
 
-      await ref.push().set(medicine);
-      Navigator.pop(context);
+        // Save to database
+        await ref.push().set(medicine);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Medicine "${_nameController.text.trim()}" added successfully with notifications!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        Navigator.pop(context);
+      } catch (e) {
+        print('Error adding medicine: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error adding medicine: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields, select days, and time.')),
+        const SnackBar(
+          content: Text('Please fill all fields, select days, and time.'),
+          backgroundColor: Colors.orange,
+        ),
       );
     }
-
   }
 
   @override

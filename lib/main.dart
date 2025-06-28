@@ -13,19 +13,56 @@ import 'package:timezone/timezone.dart' as tz;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await NotificationService.init();
-  await requestNotificationPermission();
-
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  
+  // Initialize Firebase first - before running the app
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    print('Error initializing Firebase: $e');
+  }
+  
+  // Start the app after Firebase is initialized
   runApp(const MyApp());
+  
+  // Initialize notification service in background
+  try {
+    await NotificationService.init();
+    print('Notification service initialized successfully in main');
+  } catch (e) {
+    print('Error initializing notification service: $e');
+  }
+  
+  // Request permissions in background
+  try {
+    await requestAllPermissions();
+    print('Permissions requested successfully');
+  } catch (e) {
+    print('Error requesting permissions: $e');
+  }
 }
 
-Future<void> requestNotificationPermission() async {
-  final status = await Permission.notification.status;
-  if (!status.isGranted) {
-    await Permission.notification.request();
+Future<void> requestAllPermissions() async {
+  try {
+    // Request notification permission
+    final notificationStatus = await Permission.notification.status;
+    if (!notificationStatus.isGranted) {
+      final result = await Permission.notification.request();
+      print('Notification permission request result: $result');
+    }
+    
+    // Request additional permissions for Android
+    final alarmStatus = await Permission.ignoreBatteryOptimizations.status;
+    if (!alarmStatus.isGranted) {
+      final result = await Permission.ignoreBatteryOptimizations.request();
+      print('Alarm permission request result: $result');
+    }
+    
+    print('Final notification permission status: ${await Permission.notification.status}');
+    print('Final alarm permission status: ${await Permission.ignoreBatteryOptimizations.status}');
+  } catch (e) {
+    print('Error requesting permissions: $e');
   }
 }
 
@@ -38,34 +75,17 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Healthy Pathway',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF00ACC1),
+          brightness: Brightness.light,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF00ACC1),
+          foregroundColor: Colors.white,
+        ),
         useMaterial3: true,
       ),
-      home: const AuthWrapper(),
-    );
-  }
-}
-
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SplashScreen();
-        }
-        
-        if (snapshot.hasData && snapshot.data != null) {
-          // User is logged in
-          return const HomeScreen();
-        } else {
-          // User is not logged in
-          return const LoginScreen();
-        }
-      },
+      home: const SplashScreen(), // Start directly with splash screen
     );
   }
 }
