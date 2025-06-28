@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../widgets/round_home_button.dart';
 import '../../services/health_tips_api.dart';
 
@@ -625,10 +624,6 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            Share.share(
-                              '${safeTip['tip']}\n\nSource: ${safeTip['source']}\nShared from Healthy Pathway App',
-                              subject: 'Health Tip: ${safeTip['category']}',
-                            );
                           },
                           icon: Icon(Icons.share, size: 18),
                           label: Text('Share'),

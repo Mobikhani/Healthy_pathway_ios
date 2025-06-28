@@ -19,50 +19,75 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    print('✅ Firebase initialized successfully');
   } catch (e) {
-    print('Error initializing Firebase: $e');
+    print('❌ Error initializing Firebase: $e');
   }
   
-  // Start the app after Firebase is initialized
-  runApp(const MyApp());
-  
-  // Initialize notification service in background
+  // Initialize notification service before running the app
   try {
+    print('🔧 Initializing notification service in main...');
     await NotificationService.init();
-    print('Notification service initialized successfully in main');
+    print('✅ Notification service initialized successfully in main');
   } catch (e) {
-    print('Error initializing notification service: $e');
+    print('❌ Error initializing notification service in main: $e');
   }
   
-  // Request permissions in background
+  // Request permissions after notification service is initialized
   try {
+    print('🔧 Requesting permissions...');
     await requestAllPermissions();
-    print('Permissions requested successfully');
+    print('✅ Permissions requested successfully');
   } catch (e) {
-    print('Error requesting permissions: $e');
+    print('❌ Error requesting permissions: $e');
   }
+  
+  // Start the app after all initialization is complete
+  runApp(const MyApp());
 }
 
 Future<void> requestAllPermissions() async {
   try {
-    // Request notification permission
+    print('🔧 Checking current permission status...');
+    
+    // Check notification permission
     final notificationStatus = await Permission.notification.status;
+    print('Current notification permission status: $notificationStatus');
+    
     if (!notificationStatus.isGranted) {
+      print('🔧 Requesting notification permission...');
       final result = await Permission.notification.request();
       print('Notification permission request result: $result');
+    } else {
+      print('✅ Notification permission already granted');
     }
     
-    // Request additional permissions for Android
+    // Check and request alarm permission for Android
     final alarmStatus = await Permission.ignoreBatteryOptimizations.status;
+    print('Current alarm permission status: $alarmStatus');
+    
     if (!alarmStatus.isGranted) {
+      print('🔧 Requesting alarm permission...');
       final result = await Permission.ignoreBatteryOptimizations.request();
       print('Alarm permission request result: $result');
+    } else {
+      print('✅ Alarm permission already granted');
     }
     
-    print('Final notification permission status: ${await Permission.notification.status}');
-    print('Final alarm permission status: ${await Permission.ignoreBatteryOptimizations.status}');
+    // Final status check
+    final finalNotificationStatus = await Permission.notification.status;
+    final finalAlarmStatus = await Permission.ignoreBatteryOptimizations.status;
+    
+    print('Final notification permission status: $finalNotificationStatus');
+    print('Final alarm permission status: $finalAlarmStatus');
+    
+    if (finalNotificationStatus.isGranted) {
+      print('✅ All required permissions granted');
+    } else {
+      print('⚠️ Some permissions may not be granted - notifications may not work properly');
+    }
   } catch (e) {
-    print('Error requesting permissions: $e');
+    print('❌ Error requesting permissions: $e');
   }
 }
 

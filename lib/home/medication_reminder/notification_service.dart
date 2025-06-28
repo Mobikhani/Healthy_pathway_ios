@@ -28,16 +28,7 @@ class NotificationService {
       
       // Initialize timezone
       tz.initializeTimeZones();
-      final deviceTimezone = DateTime.now().timeZoneName;
-      print('Device timezone: $deviceTimezone');
       
-      try {
-        tz.setLocalLocation(tz.getLocation('Asia/Karachi'));
-        print('Set timezone to Asia/Karachi');
-      } catch (e) {
-        print('Failed to set Asia/Karachi timezone, using local: $e');
-      }
-
       // Create notification channel for Android
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
         'medicines_channel',
@@ -49,9 +40,15 @@ class NotificationService {
         showBadge: true,
       );
 
-      await _notifications
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(channel);
+      final androidImplementation = _notifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidImplementation != null) {
+        await androidImplementation.createNotificationChannel(channel);
+        print('✅ Android notification channel created');
+      } else {
+        print('⚠️ Android implementation not available');
+      }
 
       const AndroidInitializationSettings androidSettings =
           AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -68,17 +65,20 @@ class NotificationService {
       );
 
       // Initialize with notification tap callback
-      await _notifications.initialize(
+      final initialized = await _notifications.initialize(
         settings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
           print('Notification tapped: ${response.payload}');
         },
       );
+      
+      print('Notification initialization result: $initialized');
 
       _isInitialized = true;
       print('✅ Notification service initialized successfully');
     } catch (e) {
       print('❌ Error initializing notification service: $e');
+      _isInitialized = false;
       rethrow;
     }
   }
@@ -95,10 +95,15 @@ class NotificationService {
       print('Title: $title');
       print('Time: ${time.hour}:${time.minute}');
       print('Days: $days');
+      print('Service initialized: $_isInitialized');
+      
+      if (!_isInitialized) {
+        print('❌ Notification service not initialized!');
+        await init();
+      }
       
       final now = DateTime.now();
       print('Current time: $now');
-      print('Current weekday: ${now.weekday}');
 
       // Cancel any existing notifications for this medicine
       for (String day in days) {
@@ -116,69 +121,41 @@ class NotificationService {
         print('Unique ID: $uniqueId');
         print('Time until notification: ${scheduledDate.difference(now).inMinutes} minutes');
 
-        // If the time is very close (within 1 minute), schedule it for 30 seconds from now for testing
-        if (scheduledDate.difference(now).inMinutes < 1) {
-          final testDate = DateTime.now().add(const Duration(seconds: 30));
-          print('⚠️ Time is too close, scheduling for testing in 30 seconds: $testDate');
-          
-          await _notifications.zonedSchedule(
-            uniqueId,
-            title,
-            body,
-            tz.TZDateTime.from(testDate, tz.local),
-            const NotificationDetails(
-              android: AndroidNotificationDetails(
-                'medicines_channel',
-                'Medicine Reminders',
-                importance: Importance.max,
-                priority: Priority.high,
-                playSound: true,
-                enableVibration: true,
-                icon: '@mipmap/ic_launcher',
-                largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
-                channelShowBadge: true,
-                enableLights: true,
-                color: Color(0xFF00ACC1),
-              ),
-            ),
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          );
-        } else {
-          // Convert to TZDateTime for scheduling
-          final tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
+        // Convert to TZDateTime for scheduling
+        final tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
 
-          await _notifications.zonedSchedule(
-            uniqueId,
-            title,
-            body,
-            tzScheduledDate,
-            const NotificationDetails(
-              android: AndroidNotificationDetails(
-                'medicines_channel',
-                'Medicine Reminders',
-                importance: Importance.max,
-                priority: Priority.high,
-                playSound: true,
-                enableVibration: true,
-                icon: '@mipmap/ic_launcher',
-                largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
-                channelShowBadge: true,
-                enableLights: true,
-                color: Color(0xFF00ACC1),
-              ),
-              iOS: DarwinNotificationDetails(
-                presentAlert: true,
-                presentBadge: true,
-                presentSound: true,
-              ),
+        await _notifications.zonedSchedule(
+          uniqueId,
+          title,
+          body,
+          tzScheduledDate,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'medicines_channel',
+              'Medicine Reminders',
+              importance: Importance.max,
+              priority: Priority.high,
+              playSound: true,
+              enableVibration: true,
+              icon: '@mipmap/ic_launcher',
+              largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+              channelShowBadge: true,
+              enableLights: true,
+              color: Color(0xFF00ACC1),
             ),
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-            matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-            payload: 'medicine_reminder',
-          );
-        }
+            iOS: DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
+          ),
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          payload: 'medicine_reminder',
+        );
+        print('✅ Successfully scheduled notification for $day at ${scheduledDate.toLocal()}');
         
-        print('✅ Successfully scheduled notification for $day');
+        // Schedule the next occurrence for recurring notifications
+        await _scheduleNextOccurrence(uniqueId, title, body, time, day);
       }
       
       print('=== ALL NOTIFICATIONS SCHEDULED ===');
@@ -188,15 +165,67 @@ class NotificationService {
     }
   }
 
+  // Helper method to schedule the next occurrence
+  static Future<void> _scheduleNextOccurrence(
+    int baseId,
+    String title,
+    String body,
+    TimeOfDay time,
+    String weekday,
+  ) async {
+    try {
+      // Calculate next week's occurrence
+      final nextWeekDate = _nextInstanceOfDayTime(time, weekday).add(const Duration(days: 7));
+      final nextWeekId = baseId + 1000; // Different ID for next week
+      
+      print('📅 Scheduling next week occurrence for $weekday at ${nextWeekDate.toLocal()}');
+      
+      final tzNextWeekDate = tz.TZDateTime.from(nextWeekDate, tz.local);
+      
+      await _notifications.zonedSchedule(
+        nextWeekId,
+        title,
+        body,
+        tzNextWeekDate,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'medicines_channel',
+            'Medicine Reminders',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+            icon: '@mipmap/ic_launcher',
+            largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+            channelShowBadge: true,
+            enableLights: true,
+            color: Color(0xFF00ACC1),
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: 'medicine_reminder',
+      );
+      print('✅ Next week occurrence scheduled successfully');
+    } catch (e) {
+      print('❌ Error scheduling next occurrence: $e');
+    }
+  }
+
   static DateTime _nextInstanceOfDayTime(TimeOfDay time, String weekday) {
     final now = DateTime.now();
     final targetDay = _weekdayToInt(weekday);
 
-    print('Calculating next occurrence for $weekday at ${time.hour}:${time.minute}');
-    print('Current time: $now (weekday: ${now.weekday})');
-    print('Target weekday: $targetDay');
+    print('🔍 TIME CALCULATION DEBUG:');
+    print('Target: $weekday at ${time.hour}:${time.minute}');
+    print('Current: ${now.toLocal()} (weekday: ${now.weekday})');
+    print('Target weekday number: $targetDay');
 
-    // Create a date for today at the specified time
+    // Start with today at the specified time
     DateTime scheduledDate = DateTime(
       now.year,
       now.month,
@@ -205,27 +234,34 @@ class NotificationService {
       time.minute,
     );
 
-    print('Initial scheduled date: $scheduledDate');
+    print('Initial date: $scheduledDate');
 
-    // If the time has already passed today, move to next occurrence
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
-      print('Time already passed today, moving to tomorrow: $scheduledDate');
+    // If today is the target day and time hasn't passed, use today
+    if (now.weekday == targetDay && scheduledDate.isAfter(now)) {
+      print('✅ Using today - same day and time in future');
+      print('Time until notification: ${scheduledDate.difference(now).inMinutes} minutes');
+      return scheduledDate;
     }
 
-    // Find the next occurrence of the target day
-    int daysAdded = 0;
-    while (scheduledDate.weekday != targetDay) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
-      daysAdded++;
-      if (daysAdded > 7) {
-        print('⚠️ Warning: Could not find target day, using fallback');
-        break;
+    // If today is the target day but time has passed, move to next week
+    if (now.weekday == targetDay && scheduledDate.isBefore(now)) {
+      print('⏰ Same day but time passed, moving to next week');
+      scheduledDate = scheduledDate.add(const Duration(days: 7));
+    } else {
+      // Find next occurrence of target day
+      int daysToAdd = 0;
+      while (scheduledDate.weekday != targetDay) {
+        scheduledDate = scheduledDate.add(const Duration(days: 1));
+        daysToAdd++;
+        if (daysToAdd > 7) {
+          print('⚠️ Could not find target day, using fallback');
+          break;
+        }
       }
+      print('📅 Added $daysToAdd days to reach target day');
     }
 
-    print('Final calculated date: $scheduledDate');
-    print('Days added: $daysAdded');
+    print('Final scheduled date: ${scheduledDate.toLocal()}');
     print('Time until notification: ${scheduledDate.difference(now).inMinutes} minutes');
     
     return scheduledDate;
@@ -249,126 +285,6 @@ class NotificationService {
         return DateTime.sunday;
       default:
         return DateTime.monday;
-    }
-  }
-
-  // Method to test notification immediately
-  static Future<void> showTestNotification() async {
-    try {
-      print('Sending test notification...');
-      await _notifications.show(
-        999,
-        'Test Medicine Reminder',
-        'This is a test notification to verify the system is working',
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'medicines_channel',
-            'Medicine Reminders',
-            importance: Importance.max,
-            priority: Priority.high,
-            playSound: true,
-            enableVibration: true,
-          ),
-        ),
-      );
-      print('✅ Test notification sent successfully');
-    } catch (e) {
-      print('❌ Error sending test notification: $e');
-      rethrow;
-    }
-  }
-
-  // Method to force show a medicine notification immediately
-  static Future<void> showMedicineNotificationNow(String medicineName) async {
-    try {
-      print('Showing medicine notification immediately for: $medicineName');
-      await _notifications.show(
-        996,
-        'Time to take $medicineName',
-        'Don\'t forget to take your medicine!',
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'medicines_channel',
-            'Medicine Reminders',
-            importance: Importance.max,
-            priority: Priority.high,
-            playSound: true,
-            enableVibration: true,
-            icon: '@mipmap/ic_launcher',
-            largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
-            channelShowBadge: true,
-            enableLights: true,
-            color: Color(0xFF00ACC1),
-          ),
-        ),
-      );
-      print('✅ Medicine notification shown immediately');
-    } catch (e) {
-      print('❌ Error showing medicine notification: $e');
-      rethrow;
-    }
-  }
-
-  // Method to schedule a test notification for 10 seconds from now
-  static Future<void> scheduleTestNotification() async {
-    try {
-      print('Scheduling test notification for 10 seconds from now...');
-      final scheduledDate = DateTime.now().add(const Duration(seconds: 10));
-      
-      await _notifications.zonedSchedule(
-        998,
-        'Test Scheduled Notification',
-        'This notification was scheduled 10 seconds ago',
-        tz.TZDateTime.from(scheduledDate, tz.local),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'medicines_channel',
-            'Medicine Reminders',
-            importance: Importance.max,
-            priority: Priority.high,
-          ),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      );
-      print('✅ Test notification scheduled for ${scheduledDate.toLocal()}');
-    } catch (e) {
-      print('❌ Error scheduling test notification: $e');
-      rethrow;
-    }
-  }
-
-  // Method to schedule a test medicine notification for 2 minutes from now
-  static Future<void> scheduleTestMedicineNotification() async {
-    try {
-      print('Scheduling test medicine notification for 2 minutes from now...');
-      final scheduledDate = DateTime.now().add(const Duration(minutes: 2));
-      
-      await _notifications.zonedSchedule(
-        997,
-        'Test Medicine Reminder',
-        'This is a test medicine notification scheduled 2 minutes ago',
-        tz.TZDateTime.from(scheduledDate, tz.local),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'medicines_channel',
-            'Medicine Reminders',
-            importance: Importance.max,
-            priority: Priority.high,
-            playSound: true,
-            enableVibration: true,
-            icon: '@mipmap/ic_launcher',
-            largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
-            channelShowBadge: true,
-            enableLights: true,
-            color: Color(0xFF00ACC1),
-          ),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      );
-      print('✅ Test medicine notification scheduled for ${scheduledDate.toLocal()}');
-    } catch (e) {
-      print('❌ Error scheduling test medicine notification: $e');
-      rethrow;
     }
   }
 
@@ -404,5 +320,158 @@ class NotificationService {
       print('ID: ${notification.id}, Title: ${notification.title}');
     }
     return pendingNotifications;
+  }
+
+  // Method to check if notification service is initialized
+  static bool isInitialized() {
+    return _isInitialized;
+  }
+
+  // Method to get detailed service status
+  static Future<Map<String, dynamic>> getServiceStatus() async {
+    final permissions = await checkPermissions();
+    final pendingNotifications = await getPendingNotifications();
+    
+    return {
+      'initialized': _isInitialized,
+      'permissions': permissions,
+      'pendingNotificationsCount': pendingNotifications.length,
+      'pendingNotifications': pendingNotifications.map((n) => {
+        'id': n.id,
+        'title': n.title,
+        'body': n.body,
+      }).toList(),
+    };
+  }
+
+  // Method to reschedule all notifications from Firebase data
+  static Future<void> rescheduleAllNotifications(List<Map<String, dynamic>> medicines) async {
+    try {
+      print('🔄 Rescheduling all notifications from Firebase data...');
+      
+      if (!_isInitialized) {
+        print('❌ Service not initialized, initializing now...');
+        await init();
+      }
+      
+      // Cancel all existing notifications first
+      await cancelAllNotifications();
+      
+      // Reschedule each medicine
+      for (final medicine in medicines) {
+        final name = medicine['name'] as String? ?? '';
+        final timeStr = medicine['time'] as String? ?? '';
+        final days = (medicine['days'] as List<dynamic>?)?.cast<String>() ?? [];
+        
+        if (name.isNotEmpty && timeStr.isNotEmpty && days.isNotEmpty) {
+          // Parse time string (format: "18:30")
+          final timeParts = timeStr.split(':');
+          if (timeParts.length == 2) {
+            final hour = int.tryParse(timeParts[0]) ?? 0;
+            final minute = int.tryParse(timeParts[1]) ?? 0;
+            final time = TimeOfDay(hour: hour, minute: minute);
+            
+            print('🔄 Rescheduling: $name at ${time.hour}:${time.minute.toString().padLeft(2, '0')} on $days');
+            
+            await scheduleMedicineNotification(
+              id: name.hashCode & 0x7FFFFFFF,
+              title: 'Time to take $name',
+              body: 'Don\'t forget to take your medicine!',
+              time: time,
+              days: days,
+            );
+          }
+        }
+      }
+      
+      print('✅ All notifications rescheduled successfully');
+    } catch (e) {
+      print('❌ Error rescheduling notifications: $e');
+    }
+  }
+
+  // Simple test notification method
+  static Future<void> showSimpleTestNotification() async {
+    try {
+      print('🔔 Showing simple test notification...');
+      
+      if (!_isInitialized) {
+        print('❌ Service not initialized, initializing now...');
+        await init();
+      }
+      
+      await _notifications.show(
+        999,
+        'Test Medicine Reminder',
+        'This is a test notification to verify the system is working',
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'medicines_channel',
+            'Medicine Reminders',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+          ),
+        ),
+      );
+      print('✅ Simple test notification sent successfully');
+    } catch (e) {
+      print('❌ Error sending simple test notification: $e');
+      rethrow;
+    }
+  }
+
+  // Test method to schedule a notification for 30 seconds in the future
+  static Future<void> scheduleTestNotification() async {
+    try {
+      print('🧪 Scheduling test notification for 30 seconds...');
+      
+      if (!_isInitialized) {
+        print('❌ Service not initialized, initializing now...');
+        await init();
+      }
+      
+      final now = DateTime.now();
+      final scheduledTime = now.add(const Duration(seconds: 30));
+      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+      
+      print('Current time: ${now.toLocal()}');
+      print('Scheduled time: ${scheduledTime.toLocal()}');
+      print('Time until notification: 30 seconds');
+      
+      await _notifications.zonedSchedule(
+        888,
+        'Test Scheduled Notification',
+        'This notification was scheduled 30 seconds ago',
+        tzScheduledTime,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'medicines_channel',
+            'Medicine Reminders',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+            icon: '@mipmap/ic_launcher',
+            largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+            channelShowBadge: true,
+            enableLights: true,
+            color: Color(0xFF00ACC1),
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: 'test_notification',
+      );
+      print('✅ Test notification scheduled for 30 seconds');
+    } catch (e) {
+      print('❌ Error scheduling test notification: $e');
+      rethrow;
+    }
   }
 }

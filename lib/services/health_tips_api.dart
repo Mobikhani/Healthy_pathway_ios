@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:math';
-import 'package:http/http.dart' as http;
 
 class HealthTipsApi {
   static const String _baseUrl = 'https://health.gov/api';
@@ -1753,25 +1752,7 @@ class HealthTipsApi {
 
   // Get a random health tip
   static Future<Map<String, dynamic>> getRandomTip() async {
-    // Prioritize local tips for better performance and reliability
-    // Only try external API occasionally (20% of the time)
-    final random = Random();
-    if (random.nextDouble() < 0.2) {
-      try {
-        // Try to fetch from external API with shorter timeout
-        final externalTip = await _fetchExternalTip().timeout(
-          const Duration(seconds: 3), // Reduced timeout
-          onTimeout: () => null,
-        );
-        if (externalTip != null) {
-          return externalTip;
-        }
-      } catch (e) {
-        print('External API failed, using local tips: $e');
-      }
-    }
-
-    // Fallback to local tips (80% of the time or when external fails)
+    // Use local tips 100% of the time to avoid API errors
     return _getLocalTip();
   }
 
@@ -1795,61 +1776,6 @@ class HealthTipsApi {
     categories.sort();
     print('Available categories: $categories'); // Debug print
     return categories;
-  }
-
-  // Fetch tip from external API
-  static Future<Map<String, dynamic>?> _fetchExternalTip() async {
-    try {
-      // Try multiple external sources
-      final sources = [
-        'https://api.quotable.io/random?tags=health,fitness',
-        'https://api.adviceslip.com/advice',
-        'https://api.goprogram.ai/inspiration',
-      ];
-
-      for (String source in sources) {
-        try {
-          final response = await http.get(Uri.parse(source)).timeout(
-            const Duration(seconds: 5),
-          );
-
-          if (response.statusCode == 200) {
-            final data = json.decode(response.body);
-            
-            // Parse different API formats
-            String tip = '';
-            String category = 'Wellness';
-            
-            if (source.contains('quotable')) {
-              tip = data['content'] ?? '';
-              category = 'Quote';
-            } else if (source.contains('adviceslip')) {
-              tip = data['slip']?['advice'] ?? '';
-              category = 'Advice';
-            } else if (source.contains('goprogram')) {
-              tip = data['quote'] ?? '';
-              category = 'Inspiration';
-            }
-
-            if (tip.isNotEmpty) {
-              return {
-                'tip': tip,
-                'category': category,
-                'source': 'External API',
-                'icon': _getCategoryIcon(category),
-              };
-            }
-          }
-        } catch (e) {
-          print('Failed to fetch from $source: $e');
-          continue;
-        }
-      }
-    } catch (e) {
-      print('All external APIs failed: $e');
-    }
-
-    return null;
   }
 
   // Get local tip

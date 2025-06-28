@@ -41,6 +41,11 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
       if (_currentUser == null) return;
 
       try {
+        print('=== ADDING MEDICINE ===');
+        print('Medicine name: ${_nameController.text.trim()}');
+        print('Selected days: $_selectedDays');
+        print('Selected time: ${_selectedTime!.format(context)}');
+        
         final medicine = {
           'name': _nameController.text.trim(),
           'quantity': _quantityController.text.trim(),
@@ -55,17 +60,25 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
             .child('medicines');
 
         // Schedule notifications first
-        print('Scheduling notifications for medicine: ${_nameController.text.trim()}');
-        await NotificationService.scheduleMedicineNotification(
-          id: '${_nameController.text.trim()}-${_selectedTime.toString()}'.hashCode & 0x7FFFFFFF,
-          title: 'Time to take ${_nameController.text.trim()}',
-          body: 'Don\'t forget to take your medicine!',
-          time: _selectedTime!,
-          days: _selectedDays,
-        );
+        print('🔔 Scheduling notifications for medicine: ${_nameController.text.trim()}');
+        try {
+          await NotificationService.scheduleMedicineNotification(
+            id: '${_nameController.text.trim()}-${_selectedTime.toString()}'.hashCode & 0x7FFFFFFF,
+            title: 'Time to take ${_nameController.text.trim()}',
+            body: 'Don\'t forget to take your medicine!',
+            time: _selectedTime!,
+            days: _selectedDays,
+          );
+          print('✅ Notifications scheduled successfully');
+        } catch (notificationError) {
+          print('❌ Error scheduling notifications: $notificationError');
+          // Continue with saving to database even if notifications fail
+        }
 
         // Save to database
+        print('💾 Saving to database...');
         await ref.push().set(medicine);
+        print('✅ Medicine saved to database');
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -76,7 +89,7 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
         
         Navigator.pop(context);
       } catch (e) {
-        print('Error adding medicine: $e');
+        print('❌ Error adding medicine: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error adding medicine: $e'),

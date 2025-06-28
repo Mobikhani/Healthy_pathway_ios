@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
 import 'dart:math';
 import 'dart:async';
 import '../auth/login_screen.dart';
@@ -943,54 +942,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                             ],
-                          ),
-                        ),
-                        // Share button
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                const Color(0xFF00ACC1).withOpacity(0.2),
-                                const Color(0xFF007C91).withOpacity(0.2),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: const Color(0xFF00ACC1).withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () {
-                                Share.share(
-                                  '💡 Health Tip: $currentHealthTip\n\nFrom Healthy Pathway App',
-                                  subject: 'Daily Health Tip',
-                                );
-                              },
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.share,
-                                    size: 14,
-                                    color: const Color(0xFF004D61),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Share',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: const Color(0xFF004D61),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
                           ),
                         ),
                       ],
