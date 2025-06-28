@@ -1,20 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Background gradient matching splash screen -->
+    <!-- Transparent background to prevent white flash -->
     <item>
         <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#B2EBF2"
-                android:centerColor="#00ACC1"
-                android:endColor="#007C91"
-                android:angle="45" />
+            <solid android:color="@android:color/transparent" />
         </shape>
-    </item>
-
-    <!-- App logo -->
-    <item android:gravity="center">
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/launch_logo" />
     </item>
 </layer-list> 
