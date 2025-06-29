@@ -3,14 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:healthy_pathway/home/medication_reminder/notification_service.dart';
 import 'package:healthy_pathway/splash_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:healthy_pathway/auth/login_screen.dart';
-import 'package:healthy_pathway/home/home_screen.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'dart:io' show Platform;
 
 import 'firebase_options.dart';
-import 'package:timezone/data/latest.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,13 +21,15 @@ void main() async {
     print('❌ Error initializing Firebase: $e');
   }
   
-  // Initialize Android Alarm Manager
-  try {
-    print('🔧 Initializing Android Alarm Manager...');
-    await AndroidAlarmManager.initialize();
-    print('✅ Android Alarm Manager initialized successfully');
-  } catch (e) {
-    print('❌ Error initializing Android Alarm Manager: $e');
+  // Initialize Android Alarm Manager only on Android
+  if (Platform.isAndroid) {
+    try {
+      print('🔧 Initializing Android Alarm Manager...');
+      await AndroidAlarmManager.initialize();
+      print('✅ Android Alarm Manager initialized successfully');
+    } catch (e) {
+      print('❌ Error initializing Android Alarm Manager: $e');
+    }
   }
   
   // Initialize notification service before running the app
@@ -72,40 +70,41 @@ Future<void> requestAllPermissions() async {
       print('✅ Notification permission already granted');
     }
     
-    // Check and request alarm permission for Android
-    final alarmStatus = await Permission.ignoreBatteryOptimizations.status;
-    print('Current alarm permission status: $alarmStatus');
-    
-    if (!alarmStatus.isGranted) {
-      print('🔧 Requesting alarm permission...');
-      final result = await Permission.ignoreBatteryOptimizations.request();
-      print('Alarm permission request result: $result');
-    } else {
-      print('✅ Alarm permission already granted');
-    }
-    
-    // Check and request exact alarm permission for Android 12+
-    try {
-      final exactAlarmStatus = await Permission.scheduleExactAlarm.status;
-      print('Current exact alarm permission status: $exactAlarmStatus');
+    // Android-specific permissions
+    if (Platform.isAndroid) {
+      // Check and request alarm permission for Android
+      final alarmStatus = await Permission.ignoreBatteryOptimizations.status;
+      print('Current alarm permission status: $alarmStatus');
       
-      if (!exactAlarmStatus.isGranted) {
-        print('🔧 Requesting exact alarm permission...');
-        final result = await Permission.scheduleExactAlarm.request();
-        print('Exact alarm permission request result: $result');
+      if (!alarmStatus.isGranted) {
+        print('🔧 Requesting alarm permission...');
+        final result = await Permission.ignoreBatteryOptimizations.request();
+        print('Alarm permission request result: $result');
       } else {
-        print('✅ Exact alarm permission already granted');
+        print('✅ Alarm permission already granted');
       }
-    } catch (e) {
-      print('⚠️ Exact alarm permission not available on this device: $e');
+      
+      // Check and request exact alarm permission for Android 12+
+      try {
+        final exactAlarmStatus = await Permission.scheduleExactAlarm.status;
+        print('Current exact alarm permission status: $exactAlarmStatus');
+        
+        if (!exactAlarmStatus.isGranted) {
+          print('🔧 Requesting exact alarm permission...');
+          final result = await Permission.scheduleExactAlarm.request();
+          print('Exact alarm permission request result: $result');
+        } else {
+          print('✅ Exact alarm permission already granted');
+        }
+      } catch (e) {
+        print('⚠️ Exact alarm permission not available on this device: $e');
+      }
     }
     
     // Final status check
     final finalNotificationStatus = await Permission.notification.status;
-    final finalAlarmStatus = await Permission.ignoreBatteryOptimizations.status;
     
     print('Final notification permission status: $finalNotificationStatus');
-    print('Final alarm permission status: $finalAlarmStatus');
     
     if (finalNotificationStatus.isGranted) {
       print('✅ All required permissions granted');

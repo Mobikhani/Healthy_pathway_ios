@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:healthy_pathway/home/medication_reminder/notification_service.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'notification_service.dart';
 
 class NotificationDebugScreen extends StatefulWidget {
   const NotificationDebugScreen({super.key});
@@ -10,8 +10,8 @@ class NotificationDebugScreen extends StatefulWidget {
 }
 
 class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
-  Map<String, dynamic> _serviceStatus = {};
   bool _isLoading = true;
+  Map<String, dynamic> _serviceStatus = {};
 
   @override
   void initState() {
@@ -27,7 +27,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
     try {
       final status = await NotificationService.getServiceStatus();
       setState(() {
-        _serviceStatus = status;
+        _serviceStatus = {'initialized': status == 'Initialized'};
         _isLoading = false;
       });
     } catch (e) {
@@ -280,16 +280,11 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
                   child: ElevatedButton.icon(
                     onPressed: () async {
                       try {
-                        // Test for current time + 2 minutes on current day
-                        final now = DateTime.now();
-                        final testTime = TimeOfDay(hour: now.hour, minute: (now.minute + 2) % 60);
-                        final currentDay = _getCurrentDayName();
-                        
-                        await NotificationService.scheduleTestForExactTime(testTime, currentDay);
+                        await NotificationService.scheduleTestForExactTime();
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Test scheduled for ${testTime.format(context)} on $currentDay!'),
+                            const SnackBar(
+                              content: Text('Test scheduled for exact time!'),
                               backgroundColor: Colors.orange,
                             ),
                           );
@@ -369,11 +364,5 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
         ],
       ),
     );
-  }
-
-  String _getCurrentDayName() {
-    final now = DateTime.now();
-    final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    return days[now.weekday - 1];
   }
 } 

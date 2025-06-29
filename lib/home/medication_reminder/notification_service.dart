@@ -2,25 +2,47 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
 
 class NotificationService {
   static final _notifications = FlutterLocalNotificationsPlugin();
 
   static Future<void> init() async {
-    await _notifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(AndroidNotificationChannel(
-      'medicines_channel',
-      'Medicine Reminders',
-      description: 'Channel for medicine reminder notifications',
-      importance: Importance.max,
-    ));
+    // Android-specific initialization
+    if (Platform.isAndroid) {
+      await _notifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(AndroidNotificationChannel(
+        'medicines_channel',
+        'Medicine Reminders',
+        description: 'Channel for medicine reminder notifications',
+        importance: Importance.max,
+      ));
+    }
+
+    // iOS-specific initialization
+    if (Platform.isIOS) {
+      await _notifications
+          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
 
     const AndroidInitializationSettings androidSettings =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
 
     const InitializationSettings settings = InitializationSettings(
       android: androidSettings,
+      iOS: iosSettings,
     );
 
     await _notifications.initialize(settings);
@@ -36,29 +58,179 @@ class NotificationService {
     required TimeOfDay time,
     required List<String> days,
   }) async {
-    final now = tz.TZDateTime.now(tz.local);
-
     for (String day in days) {
       final scheduledDate = _nextInstanceOfDayTime(time, day);
 
-      await _notifications.zonedSchedule(
-        id + day.hashCode, // unique ID
-        title,
-        body,
-        scheduledDate,
-        const NotificationDetails(
+      NotificationDetails notificationDetails;
+      
+      if (Platform.isAndroid) {
+        notificationDetails = const NotificationDetails(
           android: AndroidNotificationDetails(
             'medicines_channel',
             'Medicine Reminders',
             importance: Importance.max,
             priority: Priority.high,
           ),
-        ),
+        );
+      } else {
+        notificationDetails = const NotificationDetails(
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        );
+      }
+
+      await _notifications.zonedSchedule(
+        id + day.hashCode, // unique ID
+        title,
+        body,
+        scheduledDate,
+        notificationDetails,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: Platform.isAndroid 
+            ? AndroidScheduleMode.exactAllowWhileIdle 
+            : AndroidScheduleMode.exactAllowWhileIdle,
       );
       print('Scheduling for ${scheduledDate.toLocal()}');
     }
+  }
+
+  // Add missing methods for debug screen
+  static Future<String> getServiceStatus() async {
+    try {
+      // Check if notifications are working by trying to show a test notification
+      await _notifications.show(
+        999,
+        'Status Check',
+        'Service is working',
+        const NotificationDetails(),
+      );
+      return 'Initialized';
+    } catch (e) {
+      return 'Error: $e';
+    }
+  }
+
+  static Future<void> showTestNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'test_channel',
+      'Test Notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails();
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    await _notifications.show(
+      0,
+      'Test Notification',
+      'This is a test notification',
+      platformChannelSpecifics,
+    );
+  }
+
+  static Future<void> scheduleTestFor1Minute() async {
+    final scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(minutes: 1));
+    
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'test_channel',
+      'Test Notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails();
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    await _notifications.zonedSchedule(
+      1,
+      '1 Minute Test',
+      'Scheduled for 1 minute from now',
+      scheduledDate,
+      platformChannelSpecifics,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
+  }
+
+  static Future<void> scheduleTestFor2Minutes() async {
+    final scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(minutes: 2));
+    
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'test_channel',
+      'Test Notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails();
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    await _notifications.zonedSchedule(
+      2,
+      '2 Minutes Test',
+      'Scheduled for 2 minutes from now',
+      scheduledDate,
+      platformChannelSpecifics,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
+  }
+
+  static Future<void> scheduleTestForExactTime() async {
+    final now = tz.TZDateTime.now(tz.local);
+    final scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute + 1, // Schedule for next minute
+    );
+    
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'test_channel',
+      'Test Notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails();
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    await _notifications.zonedSchedule(
+      3,
+      'Exact Time Test',
+      'Scheduled for exact time',
+      scheduledDate,
+      platformChannelSpecifics,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
   }
 
   static tz.TZDateTime _nextInstanceOfDayTime(TimeOfDay time, String weekday) {

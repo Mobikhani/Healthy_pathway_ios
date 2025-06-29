@@ -1,17 +1,17 @@
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/material.dart';
-import 'dart:math';
-import 'dart:async';
-import '../auth/login_screen.dart';
-import 'exercise_plan/exercise_plan_screen.dart';
-import 'medication_reminder/medication_home.dart';
-import 'health_info/health_info_screen.dart';
-import 'health_tips/health_tips.dart';
-import 'myth_checker/myth_home.dart';
-import 'nutration_guide/calories_tracker.dart';
-import 'overview_and_prevention/disease_overview_prevention.dart';
+import 'package:healthy_pathway/auth/login_screen.dart';
+import 'package:healthy_pathway/home/enhanced_home_screen.dart';
+import 'package:healthy_pathway/home/exercise_plan/exercise_plan_screen.dart';
+import 'package:healthy_pathway/home/health_info/health_info_screen.dart';
+import 'package:healthy_pathway/home/medication_reminder/medication_home.dart';
+import 'package:healthy_pathway/home/myth_checker/myth_home.dart';
+import 'package:healthy_pathway/home/nutration_guide/calories_tracker.dart';
+import 'package:healthy_pathway/home/overview_and_prevention/disease_overview_prevention.dart';
+import 'package:healthy_pathway/widgets/round_home_button.dart';
 import '../services/unlimited_health_tips_service.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

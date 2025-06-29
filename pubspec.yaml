@@ -44,6 +44,7 @@ flutter_icons:
   android: true
   ios: true
   image_path: "assets/Icon-1024.png"  # Updated to match the actual file
+  remove_alpha_ios: true  # Remove alpha channel for iOS
 
 
 flutter:
