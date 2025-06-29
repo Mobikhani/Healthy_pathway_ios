@@ -38,14 +38,44 @@ class _SignupScreenState extends State<SignupScreen> {
           'email': emailController.text.trim(),
         });
 
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const InputHealthInfo()));
+        if (mounted) {
+          Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (_) => const InputHealthInfo()));
+        }
       } on FirebaseAuthException catch (e) {
+        if (!mounted) return;
+        
+        String errorMessage = 'Signup failed';
+        if (e.code == 'weak-password') {
+          errorMessage = 'The password provided is too weak.';
+        } else if (e.code == 'email-already-in-use') {
+          errorMessage = 'An account already exists for that email.';
+        } else if (e.code == 'invalid-email') {
+          errorMessage = 'Invalid email address.';
+        } else if (e.code == 'operation-not-allowed') {
+          errorMessage = 'Email/password accounts are not enabled.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Signup failed')),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } catch (e) {
+        print('Signup error: $e');
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('An unexpected error occurred: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       } finally {
-        setState(() => _isLoading = false);
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }
@@ -75,7 +105,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 children: [
                   const SizedBox(height: 30),
                   Image.asset(
-                    'assets/logo.png',
+                    'assets/Icon-1024.png',
                     height: 220,
                     color: Colors.white,
                   ),
@@ -210,7 +240,6 @@ class _SignupScreenState extends State<SignupScreen> {
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            // decoration: TextDecoration.underline,
                           ),
                         ),
                       ),

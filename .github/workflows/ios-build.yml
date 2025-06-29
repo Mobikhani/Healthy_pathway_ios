@@ -1,118 +1,36 @@
-name: iOS Build for iPhone 12 Pro
+name: Build iOS App
 
 on:
   push:
-    branches: [ main, master ]
-    paths-ignore:
-      - '**.md'
-      - '**.txt'
-      - '.github/workflows/ios-build.yml'
-  workflow_dispatch:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build-ios:
     runs-on: macos-latest
-    
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.32.5'
-        channel: 'stable'
-    
-    - name: Install dependencies
-      run: flutter pub get
-    
-    - name: Get version info
-      id: version
-      run: |
-        echo "version=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
-        echo "commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-    
-    - name: Setup iOS Code Signing
-      run: |
-        # Create a development certificate for personal use
-        security create-keychain -p "" build.keychain
-        security default-keychain -s build.keychain
-        security unlock-keychain -p "" build.keychain
-        security set-keychain-settings build.keychain
-        
-        # Create a self-signed certificate for development
-        openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/C=US/ST=State/L=City/O=Organization/CN=Development"
-        
-        # Import certificate to keychain
-        security import cert.pem -k build.keychain -T /usr/bin/codesign
-        security import key.pem -k build.keychain -T /usr/bin/codesign
-        
-        # Set code signing identity
-        security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
-    
-    - name: Build iOS with Code Signing
-      run: |
-        cd ios
-        # Build with development signing
-        xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Debug -destination generic/platform=iOS -archivePath build/Runner.xcarchive clean archive CODE_SIGN_IDENTITY="iPhone Developer" CODE_SIGNING_REQUIRED=YES CODE_SIGNING_ALLOWED=YES
-    
-    - name: Export IPA for Personal Use
-      run: |
-        cd ios
-        # Export IPA with development distribution
-        xcodebuild -exportArchive -archivePath build/Runner.xcarchive -exportPath build/ios -exportOptionsPlist exportOptions.plist
-        
-        # Rename with clear naming
-        cd build/ios
-        mv Runner.ipa "HealthyPathway-iPhone12Pro-${{ steps.version.outputs.version }}-${{ steps.version.outputs.commit }}.ipa"
-        
-        # Verify the IPA was created
-        ls -la *.ipa
-    
-    - name: Check if IPA exists
-      run: |
-        cd ios/build/ios
-        if [ -f "HealthyPathway-iPhone12Pro-${{ steps.version.outputs.version }}-${{ steps.version.outputs.commit }}.ipa" ]; then
-          echo "✅ IPA file created successfully for iPhone 12 Pro"
-          ls -la *.ipa
-          echo "📱 This IPA can be installed on your iPhone 12 Pro using:"
-          echo "   - AltStore (recommended)"
-          echo "   - Apple Configurator 2"
-          echo "   - Xcode"
-        else
-          echo "❌ IPA file not found"
-          ls -la
-          exit 1
-        fi
-    
-    - name: Upload IPA
-      uses: actions/upload-artifact@v3
-      with:
-        name: "HealthyPathway-iPhone12Pro-${{ steps.version.outputs.version }}-${{ steps.version.outputs.commit }}"
-        path: ios/build/ios/HealthyPathway-iPhone12Pro-${{ steps.version.outputs.version }}-${{ steps.version.outputs.commit }}.ipa
-        retention-days: 7
-    
-    - name: Cleanup old artifacts
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            run_id: context.runId,
-          });
-          
-          // Keep only the latest 1 artifact
-          const iosArtifacts = artifacts.data.artifacts.filter(artifact => 
-            artifact.name.startsWith('HealthyPathway-iPhone12Pro-')
-          );
-          
-          if (iosArtifacts.length > 1) {
-            const artifactsToDelete = iosArtifacts.slice(1);
-            for (const artifact of artifactsToDelete) {
-              await github.rest.actions.deleteArtifact({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                artifact_id: artifact.id,
-              });
-            }
-          } 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Build iOS app (release for device)
+        run: flutter build ipa --release
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-ipa
+          path: build/ios/ipa/*.ipa 

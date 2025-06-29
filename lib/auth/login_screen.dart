@@ -32,16 +32,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
         User? user = userCredential.user;
         if (user != null && mounted) {
-          // Login successful - auth state listener will handle navigation
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Login successful!"),
-              backgroundColor: Colors.green,
-            ),
-          );
-          
-          // The auth state listener will automatically navigate to HomeScreen
-          // No need for manual navigation here
+          DatabaseReference userRef = FirebaseDatabase.instance
+              .ref()
+              .child('Users')
+              .child(user.uid);
+          DataSnapshot snapshot = await userRef.get();
+
+          if (snapshot.exists && mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            );
+          } else if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("User data not found."),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
         }
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
@@ -97,9 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-
         ),
-
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -211,7 +218,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              // decoration: TextDecoration.underline,
                             ),
                           ),
                         ),
