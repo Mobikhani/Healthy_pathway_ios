@@ -1,4 +1,4 @@
-name: iOS Build
+name: iOS Build for iPhone 12 Pro
 
 on:
   push:
@@ -31,20 +31,40 @@ jobs:
         echo "version=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
         echo "commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
     
-    - name: Build iOS (Development)
-      run: flutter build ios --debug --no-codesign
+    - name: Setup iOS Code Signing
+      run: |
+        # Create a development certificate for personal use
+        security create-keychain -p "" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "" build.keychain
+        security set-keychain-settings build.keychain
+        
+        # Create a self-signed certificate for development
+        openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/C=US/ST=State/L=City/O=Organization/CN=Development"
+        
+        # Import certificate to keychain
+        security import cert.pem -k build.keychain -T /usr/bin/codesign
+        security import key.pem -k build.keychain -T /usr/bin/codesign
+        
+        # Set code signing identity
+        security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
     
-    - name: Create IPA manually
+    - name: Build iOS with Code Signing
       run: |
         cd ios
-        mkdir -p build/ios
-        # Create a simple IPA structure for development
+        # Build with development signing
+        xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Debug -destination generic/platform=iOS -archivePath build/Runner.xcarchive clean archive CODE_SIGN_IDENTITY="iPhone Developer" CODE_SIGNING_REQUIRED=YES CODE_SIGNING_ALLOWED=YES
+    
+    - name: Export IPA for Personal Use
+      run: |
+        cd ios
+        # Export IPA with development distribution
+        xcodebuild -exportArchive -archivePath build/Runner.xcarchive -exportPath build/ios -exportOptionsPlist exportOptions.plist
+        
+        # Rename with clear naming
         cd build/ios
-        mkdir -p Payload/Runner.app
-        # Copy the built app
-        cp -r ../../build/ios/iphoneos/Runner.app Payload/
-        # Create IPA with clear naming
-        zip -r "HealthyPathway-iPhone12Pro-${{ steps.version.outputs.version }}-${{ steps.version.outputs.commit }}.ipa" Payload/
+        mv Runner.ipa "HealthyPathway-iPhone12Pro-${{ steps.version.outputs.version }}-${{ steps.version.outputs.commit }}.ipa"
+        
         # Verify the IPA was created
         ls -la *.ipa
     
@@ -52,8 +72,12 @@ jobs:
       run: |
         cd ios/build/ios
         if [ -f "HealthyPathway-iPhone12Pro-${{ steps.version.outputs.version }}-${{ steps.version.outputs.commit }}.ipa" ]; then
-          echo "✅ IPA file created successfully"
+          echo "✅ IPA file created successfully for iPhone 12 Pro"
           ls -la *.ipa
+          echo "📱 This IPA can be installed on your iPhone 12 Pro using:"
+          echo "   - AltStore (recommended)"
+          echo "   - Apple Configurator 2"
+          echo "   - Xcode"
         else
           echo "❌ IPA file not found"
           ls -la
