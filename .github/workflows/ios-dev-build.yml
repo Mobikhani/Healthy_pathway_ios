@@ -47,6 +47,20 @@ jobs:
         cp -r ../../build/ios/iphoneos/Runner.app Payload/
         # Create IPA with clear naming
         zip -r "HealthyPathway-iPhone12Pro-DEV-${{ github.event.inputs.build_type }}-${{ steps.version.outputs.version }}-${{ steps.version.outputs.commit }}.ipa" Payload/
+        # Verify the IPA was created
+        ls -la *.ipa
+    
+    - name: Check if IPA exists
+      run: |
+        cd ios/build/ios-dev
+        if [ -f "HealthyPathway-iPhone12Pro-DEV-${{ github.event.inputs.build_type }}-${{ steps.version.outputs.version }}-${{ steps.version.outputs.commit }}.ipa" ]; then
+          echo "✅ IPA file created successfully"
+          ls -la *.ipa
+        else
+          echo "❌ IPA file not found"
+          ls -la
+          exit 1
+        fi
     
     - name: Upload Development IPA
       uses: actions/upload-artifact@v3
