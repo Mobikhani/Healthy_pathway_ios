@@ -1,16 +1,19 @@
-name: iOS Build
+name: iOS Development Build
 
 on:
-  push:
-    branches: [ main, master ]
-    paths-ignore:
-      - '**.md'
-      - '**.txt'
-      - '.github/workflows/ios-build.yml'
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+        - debug
+        - profile
 
 jobs:
-  build-ios:
+  build-ios-dev:
     runs-on: macos-latest
     
     steps:
@@ -25,29 +28,28 @@ jobs:
     - name: Install dependencies
       run: flutter pub get
     
-    - name: Build iOS (Development)
-      run: flutter build ios --debug --no-codesign
+    - name: Build iOS Development
+      run: flutter build ios --${{ github.event.inputs.build_type }} --no-codesign
     
-    - name: Create IPA manually
+    - name: Create Development IPA
       run: |
         cd ios
-        mkdir -p build/ios
-        # Create a simple IPA structure for development
-        cd build/ios
+        mkdir -p build/ios-dev
+        cd build/ios-dev
         mkdir -p Payload/Runner.app
         # Copy the built app
         cp -r ../../build/ios/iphoneos/Runner.app Payload/
         # Create IPA
-        zip -r Runner.ipa Payload/
+        zip -r Runner-dev.ipa Payload/
     
-    - name: Upload IPA
+    - name: Upload Development IPA
       uses: actions/upload-artifact@v3
       with:
-        name: healthy-pathway-ios-$(github.run_number)
-        path: ios/build/ios/Runner.ipa
-        retention-days: 7
+        name: healthy-pathway-dev-$(github.run_number)
+        path: ios/build/ios-dev/Runner-dev.ipa
+        retention-days: 3
     
-    - name: Cleanup old artifacts
+    - name: Cleanup old dev artifacts
       uses: actions/github-script@v6
       with:
         script: |
@@ -56,12 +58,12 @@ jobs:
             repo: context.repo.repo,
             run_id: context.runId,
           });
-          // Keep only the latest 1 artifact
-          const iosArtifacts = artifacts.data.artifacts.filter(artifact => 
-            artifact.name.startsWith('healthy-pathway-ios-')
+          // Keep only the latest 1 dev artifact
+          const devArtifacts = artifacts.data.artifacts.filter(artifact => 
+            artifact.name.startsWith('healthy-pathway-dev-')
           );
-          if (iosArtifacts.length > 1) {
-            const artifactsToDelete = iosArtifacts.slice(1);
+          if (devArtifacts.length > 1) {
+            const artifactsToDelete = devArtifacts.slice(1);
             for (const artifact of artifactsToDelete) {
               await github.rest.actions.deleteArtifact({
                 owner: context.repo.owner,
