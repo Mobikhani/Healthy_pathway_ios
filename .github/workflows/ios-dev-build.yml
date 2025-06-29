@@ -28,6 +28,12 @@ jobs:
     - name: Install dependencies
       run: flutter pub get
     
+    - name: Get version info
+      id: version
+      run: |
+        echo "version=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+        echo "commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+    
     - name: Build iOS Development
       run: flutter build ios --${{ github.event.inputs.build_type }} --no-codesign
     
@@ -39,14 +45,14 @@ jobs:
         mkdir -p Payload/Runner.app
         # Copy the built app
         cp -r ../../build/ios/iphoneos/Runner.app Payload/
-        # Create IPA
-        zip -r Runner-dev.ipa Payload/
+        # Create IPA with clear naming
+        zip -r "HealthyPathway-iPhone12Pro-DEV-${{ github.event.inputs.build_type }}-${{ steps.version.outputs.version }}-${{ steps.version.outputs.commit }}.ipa" Payload/
     
     - name: Upload Development IPA
       uses: actions/upload-artifact@v3
       with:
-        name: healthy-pathway-dev-$(github.run_number)
-        path: ios/build/ios-dev/Runner-dev.ipa
+        name: "HealthyPathway-iPhone12Pro-DEV-${{ github.event.inputs.build_type }}-${{ steps.version.outputs.version }}-${{ steps.version.outputs.commit }}"
+        path: ios/build/ios-dev/HealthyPathway-iPhone12Pro-DEV-${{ github.event.inputs.build_type }}-${{ steps.version.outputs.version }}-${{ steps.version.outputs.commit }}.ipa
         retention-days: 3
     
     - name: Cleanup old dev artifacts
@@ -58,10 +64,12 @@ jobs:
             repo: context.repo.repo,
             run_id: context.runId,
           });
+          
           // Keep only the latest 1 dev artifact
           const devArtifacts = artifacts.data.artifacts.filter(artifact => 
-            artifact.name.startsWith('healthy-pathway-dev-')
+            artifact.name.startsWith('HealthyPathway-iPhone12Pro-DEV-')
           );
+          
           if (devArtifacts.length > 1) {
             const artifactsToDelete = devArtifacts.slice(1);
             for (const artifact of artifactsToDelete) {
