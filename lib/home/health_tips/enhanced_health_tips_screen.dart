@@ -11,7 +11,7 @@ class EnhancedHealthTipsScreen extends StatefulWidget {
 class _EnhancedHealthTipsScreenState extends State<EnhancedHealthTipsScreen> {
   String currentTip = 'Tap the button to generate a health tip!';
   bool isLoading = false;
-  String selectedCategory = 'General';
+  String selectedCategory = 'All';
 
   @override
   void initState() {
@@ -19,26 +19,19 @@ class _EnhancedHealthTipsScreenState extends State<EnhancedHealthTipsScreen> {
     _generateNewTip();
   }
 
-  Future<void> _generateNewTip() async {
+  void _generateNewTip() {
     if (!mounted) return;
     setState(() {
       isLoading = true;
     });
-    try {
-      final newTip = await UnlimitedHealthTipsService.generateHealthTip(selectedCategory);
-      if (mounted) {
-        setState(() {
-          currentTip = newTip;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          currentTip = 'Stay healthy and happy!';
-          isLoading = false;
-        });
-      }
+    
+    final newTip = UnlimitedHealthTipsService.getRandomLocalTip(selectedCategory);
+    
+    if (mounted) {
+      setState(() {
+        currentTip = newTip;
+        isLoading = false;
+      });
     }
   }
 

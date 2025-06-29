@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 class UnlimitedHealthTipsService {
   static final Random _random = Random();
   
-  // Multiple free APIs for health tips
+  // Multiple free APIs for health tips (kept for potential future use)
   static const List<String> _apis = [
     'https://api.quotable.io/quotes?tags=health,fitness&limit=100',
     'https://api.quotable.io/quotes?tags=wellness&limit=100',
@@ -254,21 +254,13 @@ class UnlimitedHealthTipsService {
     ],
   };
 
+  // Optimized: Use local tips immediately for fast refresh
   static Future<String> generateHealthTip(String category) async {
-    try {
-      // Try to get tips from free APIs first
-      final apiTip = await _getTipFromAPI(category);
-      if (apiTip != null) {
-        return apiTip;
-      }
-    } catch (e) {
-      print('❌ API call failed: $e');
-    }
-
-    // Fallback to our comprehensive local tips
-    return _getRandomLocalTip(category);
+    // Use local tips immediately for instant refresh
+    return getRandomLocalTip(category);
   }
 
+  // Keep API method for potential future use but don't use it for refresh
   static Future<String?> _getTipFromAPI(String category) async {
     try {
       // Use a random API from our list
@@ -316,7 +308,8 @@ class UnlimitedHealthTipsService {
     return emojis[category] ?? '💡';
   }
 
-  static String _getRandomLocalTip(String category) {
+  // Made public for instant refresh access
+  static String getRandomLocalTip(String category) {
     final tips = _categoryTips[category] ?? _categoryTips['All']!;
     return tips[_random.nextInt(tips.length)];
   }
