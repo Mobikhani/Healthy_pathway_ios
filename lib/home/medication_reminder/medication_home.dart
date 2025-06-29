@@ -2,8 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'add_medicine.dart';
-import 'notification_service.dart';
-import '../../widgets/round_home_button.dart';
 
 class MedicationHome extends StatefulWidget {
   const MedicationHome({super.key});
@@ -44,24 +42,12 @@ class _MedicationHomeState extends State<MedicationHome> {
         setState(() {
           _medicines = loaded;
         });
-        
-        // Reschedule notifications for all medicines
-        _rescheduleNotifications(loaded);
       } else {
         setState(() {
           _medicines = [];
         });
       }
     });
-  }
-  
-  void _rescheduleNotifications(List<Map<String, dynamic>> medicines) async {
-    try {
-      print('🔄 Rescheduling notifications for ${medicines.length} medicines...');
-      await NotificationService.rescheduleAllNotifications(medicines);
-    } catch (e) {
-      print('❌ Error rescheduling notifications: $e');
-    }
   }
 
   void _deleteMedicine(String key) async {
@@ -73,184 +59,104 @@ class _MedicationHomeState extends State<MedicationHome> {
     }
   }
 
-  void _checkPermissions() async {
-    try {
-      final permissions = await NotificationService.checkPermissions();
-      final pendingNotifications = await NotificationService.getPendingNotifications();
-      
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Notification Status'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Notification Permission: ${permissions['notification'] == true ? '✅ Granted' : '❌ Denied'}'),
-              const SizedBox(height: 8),
-              Text('Alarm Permission: ${permissions['alarm'] == true ? '✅ Granted' : '❌ Denied'}'),
-              const SizedBox(height: 8),
-              Text('Pending Notifications: ${pendingNotifications.length}'),
-              if (pendingNotifications.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                const Text('Scheduled notifications:'),
-                ...pendingNotifications.take(3).map((n) => Text('• ${n.title} (ID: ${n.id})')),
-                if (pendingNotifications.length > 3) 
-                  Text('... and ${pendingNotifications.length - 3} more'),
-              ],
-              if (!permissions['notification']! || !permissions['alarm']!) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'To fix notification issues:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text('1. Go to device Settings'),
-                const Text('2. Find "Healthy Pathway" app'),
-                const Text('3. Enable "Show notifications"'),
-                const Text('4. Set battery optimization to "Don\'t optimize"'),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                try {
-                  await NotificationService.showSimpleTestNotification();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Test notification sent! Check if you received it.'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Test Now'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                try {
-                  await NotificationService.scheduleTestNotification();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Test notification scheduled for 30 seconds! Keep app in background.'),
-                      backgroundColor: Colors.blue,
-                    ),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Test 30s'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                try {
-                  await NotificationService.rescheduleAllNotifications(_medicines);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('All notifications rescheduled!'),
-                      backgroundColor: Colors.blue,
-                    ),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error rescheduling: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Reschedule All'),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error checking permissions: $e')),
-      );
-    }
+  void _showAddMedicineSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => const AddMedicineForm(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Medicine Reminders'),
-        backgroundColor: Colors.blueAccent,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _checkPermissions,
-            tooltip: 'Check Permissions',
-          ),
-        ],
+        iconTheme: IconThemeData(
+          color: Colors.white
+        ),
+        title: const Text('My Medicines',style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold
+        ),),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
       ),
-      body: _medicines.isEmpty
-          ? const Center(
-              child: Text(
-                'No medicines added yet.\nTap the + button to add your first medicine.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFB2EBF2), // Soft cyan
+              Color(0xFF00ACC1), // Calming teal
+              Color(0xFF007C91), // Deep teal
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: _medicines.isEmpty
+              ? const Center(
+            child: Text(
+              'No medicines added yet.',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
               ),
-            )
-          : ListView.builder(
-              itemCount: _medicines.length,
-              itemBuilder: (context, index) {
-                final medicine = _medicines[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: ListTile(
-                    leading: const Icon(Icons.medication, color: Colors.blue),
-                    title: Text(medicine['name'] ?? 'Unknown'),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Quantity: ${medicine['quantity'] ?? 'N/A'}'),
-                        Text('Time: ${medicine['time'] ?? 'N/A'}'),
-                        Text('Days: ${(medicine['days'] as List<dynamic>?)?.join(', ') ?? 'N/A'}'),
-                      ],
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteMedicine(medicine['key']),
+            ),
+          )
+              : ListView.builder(
+            itemCount: _medicines.length,
+            padding: const EdgeInsets.all(16),
+            itemBuilder: (context, index) {
+              final med = _medicines[index];
+              return Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 4,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: const Icon(Icons.medication, size: 40, color: Color(0xFF00ACC1)),
+                  title: Text(
+                    med['name'],
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF007C91),
                     ),
                   ),
-                );
-              },
-            ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 6),
+                      Text("Quantity: ${med['quantity']}"),
+                      Text("Days: ${med['days'].join(', ')}"),
+                      Text("Time: ${med['time'] ?? 'Not set'}"),
+                    ],
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      _deleteMedicine(med['key']);
+                    },
+                  ),
+                ),
+
+              );
+            },
+          ),
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            builder: (context) => const AddMedicineForm(),
-          );
-        },
-        backgroundColor: Colors.blueAccent,
-        foregroundColor: Colors.white,
+        onPressed: _showAddMedicineSheet,
+        backgroundColor: const Color(0xFF00ACC1),
         child: const Icon(Icons.add),
       ),
     );

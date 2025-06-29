@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:healthy_pathway/auth/login_screen.dart';
 import 'package:healthy_pathway/home/home_screen.dart';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 
 import 'firebase_options.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -22,6 +23,15 @@ void main() async {
     print('✅ Firebase initialized successfully');
   } catch (e) {
     print('❌ Error initializing Firebase: $e');
+  }
+  
+  // Initialize Android Alarm Manager
+  try {
+    print('🔧 Initializing Android Alarm Manager...');
+    await AndroidAlarmManager.initialize();
+    print('✅ Android Alarm Manager initialized successfully');
+  } catch (e) {
+    print('❌ Error initializing Android Alarm Manager: $e');
   }
   
   // Initialize notification service before running the app
@@ -72,6 +82,22 @@ Future<void> requestAllPermissions() async {
       print('Alarm permission request result: $result');
     } else {
       print('✅ Alarm permission already granted');
+    }
+    
+    // Check and request exact alarm permission for Android 12+
+    try {
+      final exactAlarmStatus = await Permission.scheduleExactAlarm.status;
+      print('Current exact alarm permission status: $exactAlarmStatus');
+      
+      if (!exactAlarmStatus.isGranted) {
+        print('🔧 Requesting exact alarm permission...');
+        final result = await Permission.scheduleExactAlarm.request();
+        print('Exact alarm permission request result: $result');
+      } else {
+        print('✅ Exact alarm permission already granted');
+      }
+    } catch (e) {
+      print('⚠️ Exact alarm permission not available on this device: $e');
     }
     
     // Final status check

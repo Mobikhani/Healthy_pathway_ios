@@ -1,156 +1,193 @@
 # Notification Troubleshooting Guide
 
-## Overview
-This guide helps you troubleshoot notification issues in the Healthy Pathway app.
-
 ## Common Issues and Solutions
 
 ### 1. Notifications Not Appearing
 
-#### Check Permissions First
-1. Open the app and go to **Medicine Reminders**
-2. Tap the settings icon (⚙️) in the top-right corner
-3. Check if both "Notification Permission" and "Alarm Permission" show as "Granted"
-4. If not, tap "Request Permissions" and allow all permissions
+**Symptoms:**
+- Notifications are scheduled but never show up
+- No error messages in logs
+- App appears to work normally
 
-#### Test Notifications
-1. In the **Medicine Reminders** screen, you'll see a "Notification Tests" section
-2. Try these tests in order:
-   - **Test Now** - Should show immediate notification
-   - **Test 10s** - Should show notification after 10 seconds
-   - **Test 2min** - Should show notification after 2 minutes
+**Possible Causes:**
+- Missing permissions
+- Battery optimization blocking notifications
+- Notification channel not created properly
+- Device-specific settings
 
-### 2. Android-Specific Issues
+**Solutions:**
 
-#### Battery Optimization
-- Go to **Settings > Apps > Healthy Pathway > Battery**
-- Set to "Unrestricted" or "Don't optimize"
-- Enable "Allow background activity"
+#### Check Permissions
+1. Go to your device Settings > Apps > Healthy Pathway > Permissions
+2. Ensure "Notifications" permission is granted
+3. Ensure "Display over other apps" permission is granted (if available)
 
-#### Do Not Disturb
-- Check if Do Not Disturb is enabled
-- Go to **Settings > Sound & vibration > Do not disturb**
-- Make sure the app is allowed to show notifications
+#### Check Battery Optimization
+1. Go to Settings > Apps > Healthy Pathway > Battery
+2. Set battery optimization to "Don't optimize" or "Unrestricted"
+3. Enable "Allow background activity"
 
-#### Notification Settings
-- Go to **Settings > Apps > Healthy Pathway > Notifications**
-- Ensure "Show notifications" is enabled
-- Enable "Medicine Reminders" channel
-- Set importance to "High" or "Urgent"
+#### Check Notification Settings
+1. Go to Settings > Apps > Healthy Pathway > Notifications
+2. Ensure notifications are enabled
+3. Check if "Medicine Reminders" channel exists and is enabled
+4. Set importance to "High" or "Urgent"
 
-### 3. iOS-Specific Issues
+#### Check Do Not Disturb
+1. Ensure Do Not Disturb is not enabled
+2. Check if the app is in the allowed list for Do Not Disturb
 
-#### Notification Settings
-- Go to **Settings > Notifications > Healthy Pathway**
-- Enable "Allow Notifications"
-- Enable "Sounds", "Badges", and "Banners"
-- Set "Alert Style" to "Banners" or "Alerts"
+### 2. Notifications Delayed or Inconsistent
 
-#### Focus Mode
-- Check if Focus mode is enabled
-- Go to **Settings > Focus**
-- Make sure the app is allowed in your current focus mode
+**Symptoms:**
+- Notifications appear but are delayed
+- Some notifications work, others don't
+- Notifications stop working after some time
+
+**Possible Causes:**
+- Android's battery optimization
+- Background app restrictions
+- Incorrect timezone handling
+
+**Solutions:**
+
+#### Force Stop and Restart
+1. Go to Settings > Apps > Healthy Pathway
+2. Force stop the app
+3. Clear app data (optional)
+4. Restart the app
+
+#### Check Background Restrictions
+1. Go to Settings > Apps > Healthy Pathway > Battery
+2. Enable "Allow background activity"
+3. Disable "Background app restrictions"
+
+### 3. Test Notifications
+
+Use the built-in test features in the app:
+
+1. Open the app
+2. Go to Medication Reminder
+3. Navigate to Notification Debug Screen
+4. Try "Send Test Now" button
+5. Try "Schedule Test (30s)" button
+6. Check the status information
 
 ### 4. Debug Information
 
-#### Check Console Logs
-When testing notifications, check the console output for these messages:
+The app provides detailed debug information:
 
-✅ **Success Messages:**
-- "Notification service initialized successfully"
-- "Android notification channel created"
-- "Test notification sent successfully"
-- "Notification scheduled successfully"
+- **Service Status**: Shows if notification service is initialized
+- **Permissions**: Shows current permission status
+- **Pending Notifications**: Shows scheduled notifications
+- **Test Buttons**: Test immediate and scheduled notifications
 
-❌ **Error Messages:**
-- "Error initializing notification service"
-- "Permission denied"
-- "Failed to schedule notification"
+### 5. Device-Specific Issues
 
-#### Common Error Solutions
+#### Samsung Devices
+- Check "Auto-start" settings
+- Enable "Allow background activity"
+- Check "Adaptive battery" settings
 
-**"Permission denied"**
-- Request permissions again through the app
-- Check system notification settings
-- Restart the app
+#### Xiaomi/Redmi Devices
+- Enable "Auto-start" for the app
+- Disable "Battery saver" for the app
+- Check "MIUI optimization" settings
 
-**"Failed to schedule notification"**
-- Check if the time is in the past
-- Ensure the app has proper permissions
-- Try scheduling for a future time
+#### Huawei Devices
+- Enable "Auto-launch" for the app
+- Disable "Battery optimization"
+- Check "Protected apps" settings
 
-**"Notification service not initialized"**
-- Restart the app
-- Check if Firebase is properly initialized
-- Clear app data and reinstall
+#### OnePlus Devices
+- Enable "Auto-start" for the app
+- Disable "Battery optimization"
+- Check "Advanced optimization" settings
 
-### 5. Testing Steps
+### 6. Manual Testing Steps
 
-#### Step 1: Basic Test
-1. Open the app
-2. Go to Medicine Reminders
-3. Tap "Test Now"
-4. Check if notification appears immediately
+1. **Immediate Test**:
+   - Use "Send Test Now" button
+   - Should show notification immediately
+   - If this fails, there's a basic setup issue
 
-#### Step 2: Scheduled Test
-1. Tap "Test 10s"
-2. Wait 10 seconds
-3. Check if notification appears
+2. **Scheduled Test**:
+   - Use "Schedule Test (30s)" button
+   - Wait 30 seconds
+   - Should show notification
+   - If this fails, there's a scheduling issue
 
-#### Step 3: Medicine Test
-1. Add a medicine with a time 2-3 minutes in the future
-2. Wait for the scheduled time
-3. Check if notification appears
+3. **Permission Test**:
+   - Check permission status in debug screen
+   - Request permissions if needed
+   - Verify permissions are granted
 
-### 6. Advanced Troubleshooting
+4. **Service Test**:
+   - Check service initialization status
+   - Force reinitialize if needed
+   - Verify alarm manager is working
 
-#### Clear All Data
-1. Go to **Settings > Apps > Healthy Pathway > Storage**
-2. Tap "Clear Data" and "Clear Cache"
-3. Restart the app
-4. Test notifications again
+### 7. Log Analysis
 
-#### Reinstall the App
-1. Uninstall the app
-2. Restart your device
-3. Reinstall the app
-4. Grant all permissions when prompted
+Check the debug console for these messages:
 
-#### Check Device Compatibility
-- Ensure your device supports scheduled notifications
-- Check if the device has enough storage space
-- Verify the device is not in power-saving mode
+**Good signs:**
+- ✅ Notification service initialized successfully
+- ✅ Android notification channel created
+- ✅ Medicine channel verified
+- ✅ Immediate test notification successful
+- ✅ flutter_local_notifications scheduled
+- ✅ android_alarm_manager_plus scheduled
 
-### 7. Developer Information
+**Warning signs:**
+- ⚠️ Some permissions not granted
+- ⚠️ Android implementation not available
+- ⚠️ Could not cancel alarm
 
-#### Permissions Added
-The app now includes these Android permissions:
-- `POST_NOTIFICATIONS`
-- `SCHEDULE_EXACT_ALARM`
-- `USE_EXACT_ALARM`
-- `RECEIVE_BOOT_COMPLETED`
-- `WAKE_LOCK`
-- `FOREGROUND_SERVICE`
-- `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`
-- `VIBRATE`
-- `ACCESS_NOTIFICATION_POLICY`
+**Error signs:**
+- ❌ Error initializing notification service
+- ❌ Failed to initialize Android Alarm Manager
+- ❌ Medicine channel not found after creation
+- ❌ Immediate test notification failed
 
-#### Boot Receiver
-The app includes a BootReceiver to reschedule notifications after device restart.
+### 8. Advanced Troubleshooting
 
-#### Timezone Handling
-The app uses Asia/Karachi timezone by default, with fallback to device timezone.
+If basic troubleshooting doesn't work:
 
-## Still Having Issues?
+1. **Clear App Data**:
+   - Settings > Apps > Healthy Pathway > Storage
+   - Clear data and cache
+   - Restart app
 
-If you're still experiencing notification problems:
+2. **Reinstall App**:
+   - Uninstall the app
+   - Restart device
+   - Reinstall the app
 
-1. **Check the console logs** for specific error messages
-2. **Test on a different device** to isolate the issue
-3. **Contact support** with the specific error messages and device information
+3. **Check System Logs**:
+   - Enable developer options
+   - Check logcat for notification-related errors
 
-## Version Information
-- Flutter: 3.x
-- flutter_local_notifications: ^19.3.0
-- timezone: ^0.10.1
-- permission_handler: ^11.1.0 
+4. **Test on Different Device**:
+   - Try on a different Android device
+   - Check if issue is device-specific
+
+### 9. Contact Support
+
+If none of the above solutions work:
+
+1. Note down your device model and Android version
+2. Take screenshots of the debug screen
+3. Copy the console logs
+4. Describe the exact behavior you're experiencing
+
+## Quick Fix Checklist
+
+- [ ] Notifications permission granted
+- [ ] Battery optimization disabled for app
+- [ ] Do Not Disturb not enabled
+- [ ] App notifications enabled in system settings
+- [ ] Test notification works immediately
+- [ ] Test notification works when scheduled
+- [ ] Service shows as initialized in debug screen
+- [ ] No error messages in console logs 

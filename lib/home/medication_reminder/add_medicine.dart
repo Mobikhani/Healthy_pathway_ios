@@ -40,71 +40,35 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
         _selectedTime != null) {
       if (_currentUser == null) return;
 
-      try {
-        print('=== ADDING MEDICINE ===');
-        print('Medicine name: ${_nameController.text.trim()}');
-        print('Selected days: $_selectedDays');
-        print('Selected time: ${_selectedTime!.format(context)}');
-        
-        final medicine = {
-          'name': _nameController.text.trim(),
-          'quantity': _quantityController.text.trim(),
-          'days': _selectedDays,
-          'time': _selectedTime!.format(context),
-        };
+      final medicine = {
+        'name': _nameController.text.trim(),
+        'quantity': _quantityController.text.trim(),
+        'days': _selectedDays,
+        'time': _selectedTime!.format(context),
+      };
 
-        final ref = FirebaseDatabase.instance
-            .ref()
-            .child('Users')
-            .child(_currentUser!.uid)
-            .child('medicines');
+      final ref = FirebaseDatabase.instance
+          .ref()
+          .child('Users')
+          .child(_currentUser!.uid)
+          .child('medicines');
+      await NotificationService.scheduleMedicineNotification(
+        id: '${_nameController.text.trim()}-${_selectedTime.toString()}'.hashCode & 0x7FFFFFFF,
+        title: 'Time to take ${_nameController.text.trim()}',
+        body: 'Don\'t forget to take your medicine!',
+        time: _selectedTime!,
+        days: _selectedDays,
+      );
 
-        // Schedule notifications first
-        print('🔔 Scheduling notifications for medicine: ${_nameController.text.trim()}');
-        try {
-          await NotificationService.scheduleMedicineNotification(
-            id: '${_nameController.text.trim()}-${_selectedTime.toString()}'.hashCode & 0x7FFFFFFF,
-            title: 'Time to take ${_nameController.text.trim()}',
-            body: 'Don\'t forget to take your medicine!',
-            time: _selectedTime!,
-            days: _selectedDays,
-          );
-          print('✅ Notifications scheduled successfully');
-        } catch (notificationError) {
-          print('❌ Error scheduling notifications: $notificationError');
-          // Continue with saving to database even if notifications fail
-        }
 
-        // Save to database
-        print('💾 Saving to database...');
-        await ref.push().set(medicine);
-        print('✅ Medicine saved to database');
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Medicine "${_nameController.text.trim()}" added successfully with notifications!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        
-        Navigator.pop(context);
-      } catch (e) {
-        print('❌ Error adding medicine: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error adding medicine: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      await ref.push().set(medicine);
+      Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all fields, select days, and time.'),
-          backgroundColor: Colors.orange,
-        ),
+        const SnackBar(content: Text('Please fill all fields, select days, and time.')),
       );
     }
+
   }
 
   @override

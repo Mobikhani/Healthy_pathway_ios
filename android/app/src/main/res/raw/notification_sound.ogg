@@ -1,0 +1,9 @@
+# This is a placeholder for notification_sound.ogg
+# Please replace this file with an actual .ogg sound file
+# You can find free notification sounds at:
+# - https://notificationsounds.com/
+# - https://mixkit.co/free-sound-effects/notification/
+# - https://freesound.org/
+#
+# The file should be named: notification_sound.ogg
+# And placed in: android/app/src/main/res/raw/ 
