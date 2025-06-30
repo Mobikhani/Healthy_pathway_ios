@@ -14,23 +14,20 @@ workflows:
           cd ios
           pod install
           cd ..
-      - name: Build unsigned IPA
+      - name: Build and create IPA
         script: |
           flutter build ios --release --no-codesign
           cd ios
-          # Create archive
-          xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Release -destination generic/platform=iOS -archivePath build/Runner.xcarchive archive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-          # Export IPA
-          xcodebuild -exportArchive -archivePath build/Runner.xcarchive -exportPath build/ios -exportOptionsPlist exportOptions.plist
-          cd ..
-          # Also create a manual IPA as backup
-          cd ios
+          # Create Payload directory and copy app
           mkdir -p Payload
           cp -r ../build/ios/Release-iphoneos/Runner.app Payload/
-          zip -r ../build/ios/Runner-manual.ipa Payload
+          # Create IPA file
+          zip -r ../build/ios/HealthyPathway.ipa Payload
+          # Clean up
           rm -rf Payload
           cd ..
+          echo "IPA created at: build/ios/HealthyPathway.ipa"
+          ls -la build/ios/
     artifacts:
-      - ios/build/ios/*.ipa
-      - build/ios/Runner-manual.ipa
+      - build/ios/HealthyPathway.ipa
       - build/ios/Release-iphoneos/Runner.app 
