@@ -5,10 +5,24 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
+      cocoapods: default
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
+      - name: Install iOS dependencies
+        script: |
+          cd ios
+          pod install
+          cd ..
       - name: Build unsigned IPA
-        script: flutter build ios --release --no-codesign
+        script: |
+          flutter build ios --release --no-codesign
+          cd ios
+          mkdir -p Payload
+          cp -r ../build/ios/Release-iphoneos/Runner.app Payload/
+          zip -r ../build/ios/Runner.ipa Payload
+          rm -rf Payload
+          cd ..
     artifacts:
-      - build/ios/ipa/*.ipa 
+      - build/ios/Runner.ipa
+      - build/ios/Release-iphoneos/Runner.app 
